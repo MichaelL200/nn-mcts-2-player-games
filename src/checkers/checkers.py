@@ -8,6 +8,24 @@ from ..interfaces import GameSimulation, Move
 
 class Checkers(GameSimulation):
 
+    def move_to_index(self, move: Move) -> int:
+        """
+        Zamienia ruch tekstowy (np. '12-16' lub '12x19x28') na unikalny indeks od 0 do 1023.
+        Wykorzystuje tylko pole startowe i końcowe: start * 32 + koniec.
+        """
+        # Sprawdzamy typ separatora (zwykły ruch vs bicie)
+        if '-' in move:
+            parts = move.split('-')
+        else:
+            parts = move.split('x')
+            
+        # Pobieramy pierwszy i ostatni element
+        start_idx = int(parts[0])
+        final_idx = int(parts[-1])
+        
+        # Unikalne mapowanie dla 32 pól (32 * 32 = 1024 możliwości)
+        return start_idx * 32 + final_idx
+    
     def get_starting_state(self) -> CheckersState:
         """"
         State with white player to move, deafult board of 64-element 1D array."
