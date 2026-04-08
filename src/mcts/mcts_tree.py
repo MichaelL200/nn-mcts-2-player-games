@@ -1,3 +1,4 @@
+import time
 import numpy as np
 from copy import deepcopy
 from multiprocessing import Process, Manager
@@ -12,11 +13,12 @@ class MCTSTree:
     This class provides methods for running algorithm in given game environment.
     """
 
-    def __init__(self, game: GameSimulation, explore_rate: float, time_limit: float) -> None:
+    def __init__(self, game: GameSimulation, model, explore_rate: float, time_limit: float) -> None:
         self.root = None
         self.game = game
         self.explore_rate = explore_rate
         self.time_limit = time_limit    # time in seconds
+        self.model = model
 
     def mcts_search(self, init_state: GameState) -> Move:
         """
@@ -25,67 +27,50 @@ class MCTSTree:
         :param init_state: current game state
         :return: action that leads to the best child of init_state
         """
-        with Manager() as manager:
-
-            global_data = manager.Namespace()
-            global_data.best_move = ""
-
-            self.root = MCTSNode(deepcopy(init_state),
+        self.root = MCTSNode(deepcopy(init_state),
                                  self.game.get_moves(init_state))
-
-            p = Process(target=self._run_mcts, args=(global_data, ))
-            p.start()
-            p.join(self.time_limit)
-            if p.is_alive():
-                p.terminate()
-
-            return global_data.best_move
-
-    def _run_mcts(self, global_data) -> None:
-        while True:
+        self._expansion(self.root)
+        start_time = time.time()
+        while (time.time() - start_time) < self.time_limit:
             node = self._selection(self.root)
-            reward = self._simulation(node)
+            if not self.game.is_terminal(node.game_state):
+                reward = self._expansion(node)
+            else:
+                reward = self.game.reward(node.game_state, node.game_state.active_player)
             self._backprop(node, reward)
-            global_data.best_move = self._get_best_child().prev_move
+            
+        return self._get_best_child().prev_move
 
     def _selection(self, current_node: MCTSNode) -> MCTSNode:
         while not self.game.is_terminal(current_node.game_state):
             if len(current_node.moves_not_taken) != 0:
-                return self._expansion(current_node)
-
-            ucb_scores = [node.get_ucb_score()
-                          for node in current_node.children_nodes]
-            current_node = current_node.children_nodes[np.argmax(ucb_scores)]
-
+                return current_node
+            current_node = max(current_node.children_nodes, key=lambda node: node.get_ucb_score())
+            
         return current_node
-
+    
     def _expansion(self, leaf_node: MCTSNode) -> MCTSNode:
-        move_index = np.random.randint(0, len(leaf_node.moves_not_taken))
-        move = leaf_node.moves_not_taken.pop(move_index)
+        policy, value = self.model.predict(leaf_node.game_state)
+        for move in leaf_node.moves_not_taken:
+            p_move = policy[self.game.move_to_index(move)]
+            new_state = self.game.make_move(deepcopy(leaf_node.game_state), move)
+            
+            new_node = MCTSNode(
+                new_state, 
+                self.game.get_moves(new_state), 
+                move, 
+                leaf_node,
+                p_value=p_move
+            )
+            leaf_node.children_nodes.append(new_node)
+        
+        leaf_node.moves_not_taken = []
+        return value 
 
-        new_game_state = self.game.make_move(
-            deepcopy(leaf_node.game_state), move)
-        new_node = MCTSNode(new_game_state, self.game.get_moves(
-            new_game_state), move, leaf_node)
-
-        leaf_node.children_nodes.append(new_node)
-        return new_node
-
-    def _simulation(self, start_node: MCTSNode) -> int:
-        new_state = deepcopy(start_node.game_state)
-
-        while not self.game.is_terminal(new_state):
-            new_state = self.game.make_random_move(new_state)
-
-        return self.game.reward(new_state, self.root.game_state.active_player)
-
-    def _backprop(self, leaf_node: MCTSNode, reward: int = 1 | 0 | -1) -> None:
+    def _backprop(self, leaf_node: MCTSNode, reward: float) -> None:
         while True:
-            if (leaf_node.game_state.active_player != self.root.game_state.active_player):
-                leaf_node.q_value += reward
-            else:
-                leaf_node.q_value -= reward
-
+            leaf_node.q_value+=reward
+            reward = -reward
             leaf_node.visit_count += 1
             if leaf_node.parent_node is None:
                 return
@@ -93,7 +78,7 @@ class MCTSTree:
 
     def _get_best_child(self) -> MCTSNode:
         root_children = [child for child in self.root.children_nodes]
-        return max(root_children, key=lambda x: x.q_value / x.visit_count)
+        return max(root_children, key=lambda x: x.visit_count)
 
     def get_move_probs(self) -> str:
         sorted_kids = sorted(self.root.children_nodes,
@@ -101,3 +86,19 @@ class MCTSTree:
         lst = [
             f"{child.prev_move} {child.q_value/child.visit_count:.3}" for child in sorted_kids]
         return " ".join(lst) + '\n'
+
+    def get_action_prob(self) -> np.ndarray:
+        # function for training
+        action_probs = np.zeros(self.model.model.action_size, dtype=np.float32)
+        
+        counts = [child.visit_count for child in self.root.children_nodes]
+        total_visits = sum(counts)
+        
+        if total_visits == 0:
+            return action_probs # Zabezpieczenie przed błędem dzielenia przez 0
+            
+        for child in self.root.children_nodes:
+            action_idx = self.game.move_to_index(child.prev_move)
+            action_probs[action_idx] = child.visit_count / total_visits
+            
+        return action_probs
