@@ -13,8 +13,9 @@ class ModelWrapper:
     def load(path, device):
         from src.models import CheckersNet
         net = CheckersNet(action_size=1024).to(device)
-        net.load_state_dict(torch.load(path, map_location=device))
-        net.eval()
+        net.load_state_dict(torch.load(path, map_location=device, weights_only=True))
+        return ModelWrapper(net, device)
+
         return ModelWrapper(net, device)
     
     def predict(self, game_state: GameState):

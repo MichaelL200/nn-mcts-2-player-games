@@ -49,23 +49,46 @@ class MCTSTree:
             
         return current_node
     
-    def _expansion(self, leaf_node: MCTSNode) -> MCTSNode:
-        policy, value = self.model.predict(leaf_node.game_state)
-        for move in leaf_node.moves_not_taken:
-            p_move = policy[self.game.move_to_index(move)]
+    def _expansion(self, leaf_node: MCTSNode) -> float:
+        # MCTS + NN
+        if self.model is not None:
+            policy, value = self.model.predict(leaf_node.game_state)
+            for move in leaf_node.moves_not_taken:
+
+                p_move = policy[self.game.move_to_index(move)]
+                new_state = self.game.make_move(deepcopy(leaf_node.game_state), move)
+
+                new_node = MCTSNode(
+                    new_state, 
+                    self.game.get_moves(new_state), 
+                    move, 
+                    leaf_node,
+                    p_value=p_move
+                )
+
+                leaf_node.children_nodes.append(new_node)
+            leaf_node.moves_not_taken = []
+            return value 
+        # MCTS
+        else:
+            move = leaf_node.moves_not_taken.pop()
             new_state = self.game.make_move(deepcopy(leaf_node.game_state), move)
-            
             new_node = MCTSNode(
                 new_state, 
                 self.game.get_moves(new_state), 
                 move, 
                 leaf_node,
-                p_value=p_move
+                p_value=1.0
             )
             leaf_node.children_nodes.append(new_node)
-        
-        leaf_node.moves_not_taken = []
-        return value 
+            return self._simulation(new_node.game_state)
+
+    def _simulation(self, state: GameState) -> float:
+        current_state = deepcopy(state)
+        while not self.game.is_terminal(current_state):
+            current_state = self.game.make_random_move(current_state)
+
+        return self.game.reward(current_state, state.active_player)
 
     def _backprop(self, leaf_node: MCTSNode, reward: float) -> None:
         while True:
@@ -88,17 +111,19 @@ class MCTSTree:
         return " ".join(lst) + '\n'
 
     def get_action_prob(self) -> np.ndarray:
-        # function for training
-        action_probs = np.zeros(self.model.model.action_size, dtype=np.float32)
-        
+        # Function for training
+        # If no model is provided, assume default action space size (1024)
+        action_size = self.model.model.action_size if self.model is not None else 1024
+        action_probs = np.zeros(action_size, dtype=np.float32)
+
         counts = [child.visit_count for child in self.root.children_nodes]
         total_visits = sum(counts)
-        
+
         if total_visits == 0:
-            return action_probs # Zabezpieczenie przed błędem dzielenia przez 0
-            
+            return action_probs # Protection against division by zero
+
         for child in self.root.children_nodes:
             action_idx = self.game.move_to_index(child.prev_move)
             action_probs[action_idx] = child.visit_count / total_visits
-            
+
         return action_probs

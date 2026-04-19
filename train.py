@@ -46,7 +46,10 @@ game = Checkers()
 net = CheckersNet(action_size=1024).to(DEVICE)
 model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), MODEL_PATH)
 if os.path.exists(model_path):
-    net.load_state_dict(torch.load(model_path, map_location=DEVICE))
+    print(f"Found existing model at {model_path}. Resuming incremental training...")
+    net.load_state_dict(torch.load(model_path, map_location=DEVICE, weights_only=True))
+else:
+    print("No existing model found. Starting training from scratch.")
 model = ModelWrapper(net, device=DEVICE)
 optimizer = optim.Adam(net.parameters(), lr=0.001, weight_decay=1e-4)
 buffer = ReplayBuffer(max_size=10000)
