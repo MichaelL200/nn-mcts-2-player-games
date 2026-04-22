@@ -7,7 +7,7 @@ from src.models import ModelWrapper
 if __name__ == "__main__":
 
     WIDTH = 1920
-    HEIGHT = 850 #1080
+    HEIGHT = 850  # 1080
     MODEL_PATH = os.path.join("src", "models", "checkers_alphazero_model.pt")
 
     starting_state = Checkers().get_starting_state()  # Default position

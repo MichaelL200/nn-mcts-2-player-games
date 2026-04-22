@@ -9,7 +9,7 @@ from ..interfaces import GameSimulation, Move
 class Checkers(GameSimulation):
 
     def move_to_index(self, move: Move) -> int:
-        # changes string moves to integer 
+        # changes string moves to integer
         if '-' in move:
             parts = move.split('-')
         else:
@@ -17,7 +17,7 @@ class Checkers(GameSimulation):
         start_idx = int(parts[0])
         final_idx = int(parts[-1])
         return start_idx * 32 + final_idx
-    
+
     def get_starting_state(self) -> CheckersState:
         """"
         State with white player to move, deafult board of 64-element 1D array."

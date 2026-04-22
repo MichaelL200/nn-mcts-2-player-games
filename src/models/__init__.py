@@ -1,2 +1,2 @@
-from .architecture import CheckersNet
-from .wrapper import ModelWrapper
+from .architecture import CheckersNet  # noqa
+from .wrapper import ModelWrapper  # noqa

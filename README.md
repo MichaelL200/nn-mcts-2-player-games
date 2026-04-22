@@ -13,10 +13,12 @@ Use our packaged modules that strike your interest by importing them to your fil
 python3 -m venv .venv  # Create venv  
 source .venv/bin/activate  # Activate venv  
 pip install -r requirements.txt  # Install requirements to venv  
+pre-commit install  # Setup git hooks for linting
 ```
 - Run code:
 ```bash
-python3 <filename.py>  
+python3 train.py  # Train neural network model (default 10 iterations might take a while)
+python3 main.py   # Run demo (falls back to random rollouts if no model found)
 ```
 
 ## Project Organization

@@ -20,7 +20,7 @@ class PygameCheckers:
         self.display = Display(width, height)
         self.state = starting_state
         self.gamemode = gamemode
-        self.ai = MCTS(self.game,model, 1.41, 1)
+        self.ai = MCTS(self.game, model, 1.41, 1)
         self.xy_selected = None
 
     def play_game(self):
