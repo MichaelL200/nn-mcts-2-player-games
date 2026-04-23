@@ -1,7 +1,7 @@
 import os
 import torch
 from src.gui import PygameCheckers, Gamemode
-from src.checkers import Checkers
+from src.games import Checkers
 from src.models import ModelWrapper
 
 if __name__ == "__main__":

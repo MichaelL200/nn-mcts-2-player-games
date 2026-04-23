@@ -3,10 +3,9 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 from copy import deepcopy
-from src.checkers import Checkers, CheckersPlayer
 from src.models import CheckersNet, ModelWrapper
 from src.core import MCTSTree, ReplayBuffer
-from src.games import encode_checkers_state
+from src.games import Checkers, CheckersPlayer, encode_checkers_state
 
 
 EPISODES = 50

@@ -2,7 +2,7 @@ import random
 from os import system
 from time import sleep
 from core.mcts import MCTSTree as MCTS
-from src.checkers import (
+from src.games import (
     Checkers,
     CheckersPlayer,
     # CheckersBoard,

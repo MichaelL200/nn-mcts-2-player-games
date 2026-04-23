@@ -3,7 +3,7 @@ from enum import Enum
 from copy import deepcopy
 from .display import Display
 from ..core import MCTSTree as MCTS
-from ..checkers import Checkers, CheckersState, CheckersPiece
+from ..games import Checkers, CheckersState, CheckersPiece
 
 
 class Gamemode(Enum):
