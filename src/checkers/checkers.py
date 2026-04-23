@@ -7,6 +7,9 @@ from ..core import GameSimulation, Move
 
 
 class Checkers(GameSimulation):
+    @property
+    def action_size(self):
+        return 1024
 
     def move_to_index(self, move: Move) -> int:
         # changes string moves to integer

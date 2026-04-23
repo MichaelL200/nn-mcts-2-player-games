@@ -3,6 +3,11 @@ from .game_state import GameState, Move, Player
 
 
 class GameSimulation(ABC):
+    @property
+    @abstractmethod
+    def action_size(self) -> int:
+        pass
+
     @abstractmethod
     def is_terminal(self, game_state: GameState) -> bool:
         pass

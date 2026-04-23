@@ -28,7 +28,7 @@ def play_self_play_game(game, model):
     while not game.is_terminal(state):
         best_move_str = mcts.mcts_search(state)
         action_prob = mcts.get_action_prob()
-        state_tensor = model.state_to_tensor(state)
+        state_tensor = model.encoder(state)
 
         game_history.append((state_tensor, action_prob, state.active_player))
         state = game.make_move(deepcopy(state), best_move_str)
