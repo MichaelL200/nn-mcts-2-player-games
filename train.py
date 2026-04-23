@@ -3,8 +3,7 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 from copy import deepcopy
-from src.models import CheckersNet, ModelWrapper
-from src.core import MCTSTree, ReplayBuffer
+from src.core import MCTSTree, ReplayBuffer, GameNet, ModelWrapper
 from src.games import Checkers, CheckersPlayer, encode_checkers_state
 
 
@@ -43,7 +42,7 @@ def play_self_play_game(game, model):
 
 
 game = Checkers()
-net = CheckersNet(action_size=1024).to(DEVICE)
+net = GameNet(action_size=1024).to(DEVICE)
 model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), MODEL_PATH)
 if os.path.exists(model_path):
     print(f"Found existing model at {model_path}. Resuming incremental training...")

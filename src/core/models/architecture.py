@@ -19,7 +19,7 @@ class ResBlock(nn.Module):
         return x
 
 
-class CheckersNet(nn.Module):
+class GameNet(nn.Module):
     def __init__(self, board_rows=8, board_cols=8, action_size=1024, num_res_blocks=4, num_hidden=64):
         super().__init__()
         self.board_rows = board_rows
