@@ -1,6 +1,6 @@
 from enum import Enum
 from .board import CheckersBoard
-from ...core import GameState
+from ...core.interfaces import GameState
 
 
 class CheckersPlayer(Enum):

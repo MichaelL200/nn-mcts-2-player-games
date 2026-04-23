@@ -1,7 +1,7 @@
 import torch
-from ...core import GameState
-from .checkers import CheckersPiece
-from .checkers import CheckersPlayer
+from ...core.interfaces import GameState
+from .board import CheckersPiece
+from .state import CheckersPlayer
 
 
 def encode_checkers_state(game_state: GameState) -> torch.Tensor:

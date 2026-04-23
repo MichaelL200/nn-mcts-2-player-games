@@ -3,7 +3,7 @@ from copy import deepcopy
 
 from .board import CheckersPiece, CheckersBoard
 from .state import CheckersPlayer, CheckersState
-from ...core import GameSimulation, Move
+from ...core.interfaces import GameSimulation, Move
 
 
 class Checkers(GameSimulation):

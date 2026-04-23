@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from .. import GameState
+from ..interfaces import GameState
 
 
 class ModelWrapper:
@@ -12,7 +12,7 @@ class ModelWrapper:
 
     @staticmethod
     def load(path, device):
-        from core.models import GameNet
+        from . import GameNet
         net = GameNet(action_size=1024).to(device)
         net.load_state_dict(torch.load(path, map_location=device, weights_only=True))
         return ModelWrapper(net, device)
