@@ -6,6 +6,7 @@ from copy import deepcopy
 from src.checkers import Checkers, CheckersPlayer
 from src.models import CheckersNet, ModelWrapper
 from src.core import MCTSTree, ReplayBuffer
+from src.games import encode_checkers_state
 
 
 EPISODES = 50
@@ -50,7 +51,7 @@ if os.path.exists(model_path):
     net.load_state_dict(torch.load(model_path, map_location=DEVICE, weights_only=True))
 else:
     print("No existing model found. Starting training from scratch.")
-model = ModelWrapper(net, device=DEVICE)
+model = ModelWrapper(net, encode_checkers_state, device=DEVICE)
 optimizer = optim.Adam(net.parameters(), lr=0.001, weight_decay=1e-4)
 buffer = ReplayBuffer(max_size=10000)
 

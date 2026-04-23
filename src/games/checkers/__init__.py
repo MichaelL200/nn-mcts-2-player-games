@@ -1,0 +1,1 @@
+from .encoder import encode_checkers_state
