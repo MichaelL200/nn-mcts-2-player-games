@@ -2,7 +2,7 @@ import pygame
 from enum import Enum
 from copy import deepcopy
 from .display import Display
-from ..mcts import MCTSTree as MCTS
+from ..core import MCTSTree as MCTS
 from ..checkers import Checkers, CheckersState, CheckersPiece
 
 

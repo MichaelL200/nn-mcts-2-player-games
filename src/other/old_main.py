@@ -1,7 +1,7 @@
 import random
 from os import system
 from time import sleep
-from src.mcts import MCTSTree as MCTS
+from core.mcts import MCTSTree as MCTS
 from src.checkers import (
     Checkers,
     CheckersPlayer,

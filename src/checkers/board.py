@@ -1,5 +1,5 @@
 from enum import Enum
-from ..interfaces import GameState
+from ..core import GameState
 
 
 class CheckersPiece(Enum):

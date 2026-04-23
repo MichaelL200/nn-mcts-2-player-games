@@ -3,11 +3,10 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 from copy import deepcopy
-from src.checkers.checkers import Checkers
-from src.checkers.state import CheckersPlayer
+from src.checkers import Checkers, CheckersPlayer
 from src.models import CheckersNet, ModelWrapper
-from src.mcts.mcts_tree import MCTSTree
-from src.training.replay_buffer import ReplayBuffer
+from src.core import MCTSTree, ReplayBuffer
+
 
 EPISODES = 50
 MCTS_TIME = 0.5

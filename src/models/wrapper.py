@@ -1,8 +1,8 @@
 import torch
 import torch.nn.functional as F
-from ..interfaces import GameState
-from ..checkers.board import CheckersPiece
-from ..checkers.state import CheckersPlayer
+from ..core import GameState
+from ..checkers import CheckersPiece
+from ..checkers import CheckersPlayer
 
 
 class ModelWrapper:
