@@ -2,8 +2,8 @@ import pygame
 from enum import Enum
 from copy import deepcopy
 from .display import Display
-from ..core import MCTSTree as MCTS
-from ..games import Checkers, CheckersState, CheckersPiece
+from ....core import MCTSTree as MCTS
+from ... import Checkers, CheckersState, CheckersPiece
 
 
 class Gamemode(Enum):

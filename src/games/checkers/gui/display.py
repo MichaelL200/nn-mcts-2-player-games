@@ -1,6 +1,6 @@
 import pygame
 import pkg_resources
-from ..games import CheckersPiece, CheckersState
+from ... import CheckersPiece, CheckersState
 
 
 class Display:
