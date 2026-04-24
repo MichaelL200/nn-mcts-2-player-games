@@ -1,10 +1,10 @@
 import torch
 import torch.nn.functional as F
-from ..interfaces import GameState
+from ..interfaces import GameState, StateEncoder
 
 
 class ModelWrapper:
-    def __init__(self, model: torch.nn.Module, encoder, device: str = 'cpu'):
+    def __init__(self, model: torch.nn.Module, encoder: StateEncoder, device: str = 'cpu'):
         self.device = torch.device(device)
         self.model = model.to(self.device)
         self.model.eval()  # Ustawiamy model w tryb inferencji (nie trenujemy go w MCTS)
@@ -18,7 +18,7 @@ class ModelWrapper:
         return ModelWrapper(net, device)
 
     def predict(self, game_state: GameState):
-        state_tensor = self.encoder(game_state)
+        state_tensor = self.encoder.encode(game_state)
         state_tensor = state_tensor.to(self.device)
 
         with torch.no_grad():

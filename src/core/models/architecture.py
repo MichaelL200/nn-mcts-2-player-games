@@ -20,14 +20,14 @@ class ResBlock(nn.Module):
 
 
 class GameNet(nn.Module):
-    def __init__(self, board_rows=8, board_cols=8, action_size=1024, num_res_blocks=4, num_hidden=64):
+    def __init__(self, board_rows=8, board_cols=8, action_size=1024, num_res_blocks=4, num_hidden=64, in_channels=5):
         super().__init__()
         self.board_rows = board_rows
         self.board_cols = board_cols
         self.action_size = action_size
 
         self.start_block = nn.Sequential(
-            nn.Conv2d(in_channels=5, out_channels=num_hidden, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=in_channels, out_channels=num_hidden, kernel_size=3, padding=1),
             nn.BatchNorm2d(num_hidden),
             nn.ReLU()
         )

@@ -4,7 +4,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from copy import deepcopy
 from src.core import MCTSTree, ReplayBuffer, GameNet, ModelWrapper
-from src.games import Checkers, CheckersPlayer, encode_checkers_state
+from src.games import Checkers, CheckersPlayer, CheckersEncoder
 
 
 EPISODES = 50
@@ -26,7 +26,7 @@ def play_self_play_game(game, model):
     while not game.is_terminal(state):
         best_move_str = mcts.mcts_search(state)
         action_prob = mcts.get_action_prob()
-        state_tensor = model.encoder(state)
+        state_tensor = model.encoder.encode(state)
 
         game_history.append((state_tensor, action_prob, state.active_player))
         state = game.make_move(deepcopy(state), best_move_str)
@@ -42,14 +42,14 @@ def play_self_play_game(game, model):
 
 
 game = Checkers()
-net = GameNet(action_size=1024).to(DEVICE)
+net = GameNet(action_size=game.action_size).to(DEVICE)
 model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), MODEL_PATH)
 if os.path.exists(model_path):
     print(f"Found existing model at {model_path}. Resuming incremental training...")
     net.load_state_dict(torch.load(model_path, map_location=DEVICE, weights_only=True))
 else:
     print("No existing model found. Starting training from scratch.")
-model = ModelWrapper(net, encode_checkers_state, device=DEVICE)
+model = ModelWrapper(net, CheckersEncoder(), device=DEVICE)
 optimizer = optim.Adam(net.parameters(), lr=0.001, weight_decay=1e-4)
 buffer = ReplayBuffer(max_size=10000)
 
