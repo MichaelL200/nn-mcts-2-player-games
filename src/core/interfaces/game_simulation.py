@@ -29,6 +29,10 @@ class GameSimulation(ABC):
         pass
 
     @abstractmethod
+    def move_to_index(self, move: Move) -> int:
+        pass
+
+    @abstractmethod
     def reward(self, game_state: GameState, desired_winner: Player) -> int | None:
         # reward should return 1,0,-1 base on player value.
         # if player 1 won then reward is 1, if he lost then reward is -1
