@@ -1,7 +1,7 @@
 import os
 import torch
-from src.games import Checkers, PygameCheckers, Gamemode
-from src.core import ModelWrapper
+from src.games import Checkers, CheckersUI
+from src.core import ModelWrapper, Gamemode, GameLoop, MCTSTree
 
 if __name__ == "__main__":
 
@@ -9,8 +9,8 @@ if __name__ == "__main__":
     HEIGHT = 850  # 1080
     MODEL_PATH = os.path.join("src", "models", "checkers_alphazero_model.pt")
 
-    starting_state = Checkers().get_starting_state()  # Default position
-    gamemode = Gamemode.PLAYER_VS_AI
+    game = Checkers()
+    ui = CheckersUI(WIDTH, HEIGHT)
 
     if os.path.exists(MODEL_PATH):
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -21,6 +21,6 @@ if __name__ == "__main__":
         print("         The AI will use classic MCTS with random rollouts.")
         print("         To train the neural network, run train.py")
         model = None
-
-    game = PygameCheckers(WIDTH, HEIGHT, starting_state, gamemode, model)
-    game.play_game()
+    ai =  MCTSTree(game, model, 1.41, 1)
+    loop = GameLoop(game, ui, gamemode=Gamemode.PLAYER_VS_AI, ai=ai)
+    loop.run(game.get_starting_state())

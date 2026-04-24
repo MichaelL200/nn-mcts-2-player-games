@@ -1,1 +1,1 @@
-from .checkers import Checkers, CheckersPlayer, PygameCheckers, Gamemode, CheckersEncoder  # noqa
+from .checkers import Checkers, CheckersPlayer, CheckersUI, CheckersEncoder  # noqa
