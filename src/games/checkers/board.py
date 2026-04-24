@@ -1,5 +1,5 @@
 from enum import Enum
-from ...core.interfaces import GameState
+from ...core.interfaces import Board
 
 
 class CheckersPiece(Enum):
@@ -10,7 +10,7 @@ class CheckersPiece(Enum):
     BLACK_QUEEN = -2
 
 
-class CheckersBoard(GameState):
+class CheckersBoard(Board):
     def __init__(self, squares):
         self.squares = squares
 
