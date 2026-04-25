@@ -8,9 +8,9 @@ from .display import Display
 
 class CheckersUI(GameUI):
     def __init__(self, width: int, height: int) -> None:
+        pygame.init()
         self.display = Display(width, height)
         self._xy_selected = None
-        pygame.init()
 
     def render(self, state: CheckersState) -> None:
         self.display.draw_board(state)
