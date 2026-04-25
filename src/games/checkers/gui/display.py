@@ -13,24 +13,24 @@ class Display:
         self.screen = self._init_screen(self.width, self.height)
         self.offset_x = (self.width - self.square_size * 8) // 2
         self.offset_y = (self.height - self.square_size * 8) // 2
+        self._image_cache: dict[CheckersPiece, pygame.Surface] = self._load_images()
 
-    def _load_image(self, image_name: str) -> pygame.image:
-        image_path = pkg_resources.resource_filename(
-            __name__, f"assets/{image_name}")
+    def _load_images(self) -> dict[CheckersPiece, pygame.Surface]:
+        raw = {
+            CheckersPiece.BLACK:       self._load_image("black_piece.png"),
+            CheckersPiece.WHITE:       self._load_image("white_piece.png"),
+            CheckersPiece.BLACK_QUEEN: self._load_image("black_queen.png"),
+            CheckersPiece.WHITE_QUEEN: self._load_image("white_queen.png"),
+        }
+        size = (int(0.75 * self.square_size), int(0.75 * self.square_size))
+        return {piece: pygame.transform.scale(img, size) for piece, img in raw.items()}
+
+    def _load_image(self, image_name: str) -> pygame.Surface:
+        image_path = pkg_resources.resource_filename(__name__, f"assets/{image_name}")
         return pygame.image.load(image_path)
 
-    def _get_piece_image(self, piece: CheckersPiece) -> pygame.image:
-        match (piece):
-            case CheckersPiece.BLACK:
-                return self._load_image("black_piece.png")
-            case CheckersPiece.WHITE:
-                return self._load_image("white_piece.png")
-            case CheckersPiece.BLACK_QUEEN:
-                return self._load_image("black_queen.png")
-            case CheckersPiece.WHITE_QUEEN:
-                return self._load_image("white_queen.png")
-            case CheckersPiece.EMPTY:
-                return None
+    def _get_piece_image(self, piece: CheckersPiece) -> pygame.Surface | None:
+        return self._image_cache.get(piece)
 
     def draw_board(self, state: CheckersState) -> None:
         self.screen.fill((230, 230, 230))
