@@ -1,5 +1,6 @@
 import torch
-from ...core.interfaces import GameState, StateEncoder
+
+from ...core.interfaces import GameState, StateEncoder, Move
 from .board import CheckersPiece
 from .state import CheckersPlayer
 
@@ -8,6 +9,20 @@ class CheckersEncoder(StateEncoder):
     @property
     def input_channels(self) -> int:
         return 5
+    
+    @property
+    def action_size(self):
+        return 1024
+    
+    def move_to_index(self, move: Move) -> int:
+        # changes string moves to integer
+        if '-' in move:
+            parts = move.split('-')
+        else:
+            parts = move.split('x')
+        start_idx = int(parts[0])
+        final_idx = int(parts[-1])
+        return start_idx * 32 + final_idx
 
     def encode(self, game_state: GameState) -> torch.Tensor:
             tensor = torch.zeros(1, 5, 8, 8, dtype=torch.float32)

@@ -1,13 +1,15 @@
 from abc import ABC, abstractmethod
+
+from .game_state_encoder import StateEncoder
 from .game_state import GameState, Move, Player
 
 
 class GameSimulation(ABC):
     @property
     @abstractmethod
-    def action_size(self) -> int:
+    def encoder(self) -> StateEncoder:
         pass
-
+    
     @abstractmethod
     def is_terminal(self, game_state: GameState) -> bool:
         pass
@@ -26,10 +28,6 @@ class GameSimulation(ABC):
 
     @abstractmethod
     def get_starting_state(self) -> GameState:
-        pass
-
-    @abstractmethod
-    def move_to_index(self, move: Move) -> int:
         pass
 
     @abstractmethod

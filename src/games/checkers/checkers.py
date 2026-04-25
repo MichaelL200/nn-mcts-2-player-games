@@ -1,25 +1,20 @@
 import numpy as np
 from copy import deepcopy
 
+from .encoder import CheckersEncoder
 from .board import CheckersPiece, CheckersBoard
 from .state import CheckersPlayer, CheckersState
 from ...core.interfaces import GameSimulation, Move
 
 
 class Checkers(GameSimulation):
-    @property
-    def action_size(self):
-        return 1024
+    def __init__(self):
+        self._encoder = CheckersEncoder()
 
-    def move_to_index(self, move: Move) -> int:
-        # changes string moves to integer
-        if '-' in move:
-            parts = move.split('-')
-        else:
-            parts = move.split('x')
-        start_idx = int(parts[0])
-        final_idx = int(parts[-1])
-        return start_idx * 32 + final_idx
+    @property
+    def encoder(self) -> CheckersEncoder:
+        return self._encoder
+    
 
     def get_starting_state(self) -> CheckersState:
         """"

@@ -54,7 +54,7 @@ class MCTSTree:
             policy, value = self.model.predict(leaf_node.game_state)
             for move in leaf_node.moves_not_taken:
 
-                p_move = policy[self.game.move_to_index(move)]
+                p_move = policy[self.game.encoder.move_to_index(move)]
                 new_state = self.game.make_move(deepcopy(leaf_node.game_state), move)
 
                 new_node = MCTSNode(
@@ -122,7 +122,7 @@ class MCTSTree:
             return action_probs  # Protection against division by zero
 
         for child in self.root.children_nodes:
-            action_idx = self.game.move_to_index(child.prev_move)
+            action_idx = self.game.encoder.move_to_index(child.prev_move)
             action_probs[action_idx] = child.visit_count / total_visits
 
         return action_probs

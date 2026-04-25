@@ -7,13 +7,13 @@ if __name__ == "__main__":
 
     WIDTH = 1920
     HEIGHT = 850  # 1080
-    MODEL_PATH = os.path.join("src", "models", "checkers_alphazero_model.pt")
+    MODEL_PATH = os.path.join("src", "core", "models", "checkers_alphazero_model.pt")
 
     game = Checkers()
     ui = CheckersUI(WIDTH, HEIGHT)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = ModelWrapper.load(MODEL_PATH, game.get_encoder(), device)
+    model = ModelWrapper.load(MODEL_PATH, game.encoder, device)
     if model is None:
         print(f"WARNING: No trained model found at {MODEL_PATH}")
         print("         The AI will use classic MCTS with random rollouts.")
