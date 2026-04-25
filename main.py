@@ -12,15 +12,13 @@ if __name__ == "__main__":
     game = Checkers()
     ui = CheckersUI(WIDTH, HEIGHT)
 
-    if os.path.exists(MODEL_PATH):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"Loading existing model from {MODEL_PATH} on {device}...")
-        model = ModelWrapper.load(MODEL_PATH, device)
-    else:
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = ModelWrapper.load(MODEL_PATH, game.get_encoder(), device)
+    if model is None:
         print(f"WARNING: No trained model found at {MODEL_PATH}")
         print("         The AI will use classic MCTS with random rollouts.")
         print("         To train the neural network, run train.py")
-        model = None
+    
     ai =  MCTSTree(game, model, 1.41, 1)
     loop = GameLoop(game, ui, gamemode=Gamemode.PLAYER_VS_AI, ai=ai)
     loop.run(game.get_starting_state())

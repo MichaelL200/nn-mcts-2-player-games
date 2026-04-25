@@ -115,6 +115,4 @@ class Trainer:
         return total_loss
 
     def _save_model(self) -> None:
-        path = os.path.abspath(self.model_path)
-        torch.save(self.model.model.state_dict(), path)
-        print(f"Model saved to: {path}", flush=True)
+        self.model.save(self.model_path)

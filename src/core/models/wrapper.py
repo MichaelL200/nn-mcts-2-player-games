@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn.functional as F
 from ..interfaces import GameState, StateEncoder
@@ -11,11 +12,28 @@ class ModelWrapper:
         self.encoder = encoder
 
     @staticmethod
-    def load(path, device):
+    def load(path: str, encoder: StateEncoder, device: str = "cpu") -> "ModelWrapper | None":
+        if not os.path.exists(path):
+            return None
         from . import GameNet
-        net = GameNet(action_size=1024).to(device)
+        print(f"Loading existing model from {path} on {device}...")
+        net = GameNet(action_size=encoder.action_size, in_channels=encoder.input_channels).to(device)
         net.load_state_dict(torch.load(path, map_location=device, weights_only=True))
-        return ModelWrapper(net, device)
+        return ModelWrapper(net, encoder, device)
+    
+    @staticmethod
+    def load_or_new(path: str, encoder: StateEncoder, device: str = "cpu") -> "ModelWrapper":
+        model = ModelWrapper.load(path, encoder, device)
+        if model is not None:
+            return model
+        from .architecture import GameNet
+        net = GameNet(action_size=encoder.action_size, in_channels=encoder.input_channels)
+        return ModelWrapper(net, encoder, device)
+    
+    def save(self, path: str) -> None:
+        project_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        model_path = os.path.join(project_path, path)
+        torch.save(self.model.state_dict(), model_path)
 
     def predict(self, game_state: GameState):
         state_tensor = self.encoder.encode(game_state)

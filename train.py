@@ -34,19 +34,13 @@ net = GameNet(
 ).to(DEVICE)
 
 model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), MODEL_PATH)
-if os.path.exists(model_path):
-    print(f"Found existing model at {model_path}. Resuming incremental training...")
-    net.load_state_dict(torch.load(model_path, map_location=DEVICE, weights_only=True))
-else:
-    print("No existing model found. Starting training from scratch.")
-
-model = ModelWrapper(net, encoder, device=DEVICE)
+model = ModelWrapper.load_or_new(model_path, encoder, device=DEVICE)
 
 if __name__ == "__main__":
     trainer = Trainer(
         game=game,
         model=model,
-        model_path=MODEL_PATH,
+        model_path=model_path,
         config=CONFIG,
         device=DEVICE,
     )
