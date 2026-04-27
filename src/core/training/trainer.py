@@ -4,6 +4,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from copy import deepcopy
 from dataclasses import dataclass
+import torch.distributed as dist
  
 from ..interfaces import GameSimulation
 from ..mcts.mcts_tree import MCTSTree
@@ -27,12 +28,14 @@ class TrainerConfig:
     buffer_size: int = 10000
 
 class Trainer:
-    def __init__(self, game: GameSimulation, model: ModelWrapper, model_path: str, config: TrainerConfig, device: str) -> None:
+    def __init__(self, game: GameSimulation, model: ModelWrapper, model_path: str, config: TrainerConfig, device: str, rank: int, world_size: int) -> None:
         self.game = game
         self.model = model
         self.model_path = model_path
         self.config = config
         self.device = device
+        self.rank = rank  
+        self.world_size = world_size
         self.buffer = ReplayBuffer(max_size=config.buffer_size)
         self.optimizer = optim.Adam(
             self.model.model.parameters(),
@@ -42,20 +45,24 @@ class Trainer:
 
     def train(self) -> None:
         for iteration in range(1, self.config.iterations + 1):
-            print(f"---------Iteration: {iteration}/{self.config.iterations}---------", flush=True)
+            if self.rank == 0: print(f"---------Iteration: {iteration}/{self.config.iterations}---------", flush=True)
  
             self._self_play_phase()
+            if dist.is_initialized():
+                dist.barrier()
  
             if len(self.buffer) > self.config.batch_size:
                 self._training_phase()
-                self._save_model()
+                if self.rank == 0: self._save_model()
+            if dist.is_initialized():
+                dist.barrier()
 
     def _self_play_phase(self) -> None:
         self.model.model.eval()
         for episode in range(self.config.episodes):
-            print(f"Processing game: {episode + 1}/{self.config.episodes}...", flush=True)
+            if self.rank == 0: print(f"Processing game: {episode + 1}/{self.config.episodes}...", flush=True)
             history, winner = self._play_self_play_game()
-            print(f"Game finished. Winner: {winner}, num moves: {len(history)}", flush=True)
+            if self.rank == 0: print(f"Game finished. Winner: {winner}, num moves: {len(history)}", flush=True)
             self.buffer.save_game(history, winner)
 
     def _play_self_play_game(self) -> tuple:
@@ -75,7 +82,7 @@ class Trainer:
             move_count += 1
  
             if move_count >= self.config.max_moves:
-                print(f"{self.config.max_moves} moves reached, assuming draw.", flush=True)
+                if self.rank == 0: print(f"{self.config.max_moves} moves reached, assuming draw.", flush=True)
                 return game_history, 0
  
         first_player = self.game.get_starting_state().active_player
@@ -83,7 +90,7 @@ class Trainer:
         return game_history, winner_value
 
     def _training_phase(self) -> None:
-        print("Training neural network...", flush=True)
+        if self.rank == 0: print("Training neural network...", flush=True) 
         self.model.model.train()
         total_loss = None
  
@@ -92,7 +99,7 @@ class Trainer:
                 total_loss = self._training_step()
  
         if total_loss is not None:
-            print(f"Training finished. Loss: {total_loss.item():.4f}", flush=True)
+           if self.rank == 0: print(f"Training finished. Loss: {total_loss.item():.4f}", flush=True)
  
         self.model.model.eval()
 

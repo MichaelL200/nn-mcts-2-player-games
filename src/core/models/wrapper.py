@@ -18,7 +18,8 @@ class ModelWrapper:
         from . import GameNet
         print(f"Loading existing model from {path} on {device}...")
         net = GameNet(action_size=encoder.action_size, in_channels=encoder.input_channels).to(device)
-        net.load_state_dict(torch.load(path, map_location=device, weights_only=True))
+        state_dict = torch.load(path, map_location=device, weights_only=True)
+        net.load_state_dict(state_dict)
         return ModelWrapper(net, encoder, device)
     
     @staticmethod
@@ -33,7 +34,11 @@ class ModelWrapper:
     def save(self, path: str) -> None:
         project_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         model_path = os.path.join(project_path, path)
-        torch.save(self.model.state_dict(), model_path)
+        if hasattr(self.model, "module"):
+            state_dict = self.model.module.state_dict()
+        else:
+            state_dict = self.model.state_dict()
+        torch.save(state_dict, model_path)
 
     def predict(self, game_state: GameState):
         state_tensor = self.encoder.encode(game_state)
