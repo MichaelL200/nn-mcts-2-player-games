@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import torch
 from .game_state import GameState, Move
 
+
 class StateEncoder(ABC):
     @property
     @abstractmethod

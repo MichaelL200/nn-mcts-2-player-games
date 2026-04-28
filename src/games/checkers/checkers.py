@@ -14,7 +14,6 @@ class Checkers(GameSimulation):
     @property
     def encoder(self) -> CheckersEncoder:
         return self._encoder
-    
 
     def get_starting_state(self) -> CheckersState:
         """"

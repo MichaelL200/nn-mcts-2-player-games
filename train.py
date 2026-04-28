@@ -21,11 +21,13 @@ CONFIG = TrainerConfig(
     buffer_size=50000,
 )
 
+
 def setup_distributed():
     if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        world_size = int(os.environ["WORLD_SIZE"])# world_size is number of gpus
-        rank = int(os.environ["RANK"])# rank is id in range(world_size)
-        local_rank = int(os.environ["LOCAL_RANK"])# local rank when i have world_size 16 and 4 servers local rank will me range(0,4) in each server
+        world_size = int(os.environ["WORLD_SIZE"])  # world_size is number of gpus
+        rank = int(os.environ["RANK"])  # rank is id in range(world_size)
+        local_rank = int(os.environ["LOCAL_RANK"])
+        # local rank when i have world_size 16 and 4 servers local rank will me range(0,4) in each server
     else:
         rank = 0
         world_size = 1
@@ -38,11 +40,13 @@ def setup_distributed():
     else:
         dist.init_process_group(backend="gloo")
         device = "cpu"
-        
+
     return rank, world_size, device, local_rank
+
+
 if __name__ == "__main__":
-    rank, world_size, device,local_rank = setup_distributed()
-    #print(f"Running on rank {rank}/{world_size} with device {device}")
+    rank, world_size, device, local_rank = setup_distributed()
+    # print(f"Running on rank {rank}/{world_size} with device {device}")
     torch.manual_seed(42 + rank)
     MODEL_PATH = os.path.join("src", "core", "models", "checkers_alphazero_model.pt")
     game = Checkers()

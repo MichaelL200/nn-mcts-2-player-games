@@ -21,7 +21,7 @@ class ModelWrapper:
         state_dict = torch.load(path, map_location=device, weights_only=True)
         net.load_state_dict(state_dict)
         return ModelWrapper(net, encoder, device)
-    
+
     @staticmethod
     def load_or_new(path: str, encoder: StateEncoder, device: str = "cpu") -> "ModelWrapper":
         model = ModelWrapper.load(path, encoder, device)
@@ -30,7 +30,7 @@ class ModelWrapper:
         from .architecture import GameNet
         net = GameNet(action_size=encoder.action_size, in_channels=encoder.input_channels)
         return ModelWrapper(net, encoder, device)
-    
+
     def save(self, path: str) -> None:
         project_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         model_path = os.path.join(project_path, path)
@@ -50,4 +50,3 @@ class ModelWrapper:
 
         value = value_tensor.item()
         return policy_probs, value
-
