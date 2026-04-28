@@ -8,17 +8,17 @@ from src.games.checkers.checkers import Checkers
 
 
 CONFIG = TrainerConfig(
-    episodes=5,
+    episodes=200,
     mcts_time=0.5,
-    batch_size=64,
-    iterations=1,
-    epochs=1,
+    batch_size=256,
+    iterations=20,
+    epochs=5,
     num_batches=100,
-    max_moves=50,
+    max_moves=150,
     explore_rate=1.41,
     learning_rate=0.001,
     weight_decay=1e-4,
-    buffer_size=10000,
+    buffer_size=50000,
 )
 
 def setup_distributed():
