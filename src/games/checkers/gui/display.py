@@ -9,7 +9,7 @@ class Display:
         self.width = width
         self.height = height
         self.square_size = min(self.width, self.height) // 8
-        self.highlighted_square = None
+        self.highlighted_squares: dict[tuple[int, int], tuple[int, int, int]] = {}
         self.screen = self._init_screen(self.width, self.height)
         self.offset_x = (self.width - self.square_size * 8) // 2
         self.offset_y = (self.height - self.square_size * 8) // 2
@@ -38,10 +38,10 @@ class Display:
 
         for j in range(8):
             for i in range(8):
-                if (i, j) == self.highlighted_square:
-                    color = (255, 0, 0)
-                else:
-                    color = (255, 255, 255) if (i + j) % 2 != 0 else (0, 0, 0)
+                color = self.highlighted_squares.get(
+                    (i, j),
+                    (255, 255, 255) if (i + j) % 2 != 0 else (0, 0, 0),
+                )
 
                 pygame.draw.rect(
                     self.screen,
@@ -73,8 +73,8 @@ class Display:
                             ),
                         )
 
-    def highlight_square(self, cords: tuple[int, int]):
-        self.highlighted_square = cords
+    def highlight_squares(self, squares: dict[tuple[int, int], tuple[int, int, int]]) -> None:
+        self.highlighted_squares = squares
 
     def _init_screen(self, width: int, height: int) -> pygame.Surface:
         screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
