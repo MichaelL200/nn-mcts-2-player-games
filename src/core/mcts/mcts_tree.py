@@ -112,7 +112,14 @@ class MCTSTree:
     def get_action_prob(self) -> np.ndarray:
         # Function for training
         # If no model is provided, assume default action space size
-        action_size = self.model.model.action_size if self.model is not None else self.game.get_action_size()
+        if self.model is not None:
+            inner_model = self.model.model
+            if hasattr(inner_model, 'module'):
+                action_size = inner_model.module.action_size
+            else:
+                action_size = inner_model.action_size
+        else:
+            action_size = self.game.get_action_size()
         action_probs = np.zeros(action_size, dtype=np.float32)
 
         counts = [child.visit_count for child in self.root.children_nodes]
