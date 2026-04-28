@@ -10,5 +10,6 @@
 #SBATCH --output=logs/slurm_%j.log
 
 module load Miniconda3/4.9.2
+eval "$(conda shell.bash hook)"
 source activate /net/tscratch/people/$USER/env_checkers
 python -m torch.distributed.run --nproc_per_node=4 train.py
