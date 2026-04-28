@@ -19,7 +19,7 @@ class MCTSTree:
         self.time_limit = time_limit    # time in seconds
         self.model = model
 
-    def mcts_search(self, init_state: GameState) -> Move:
+    def mcts_search(self, init_state: GameState,temperature = None) -> Move:
         """
         Implementation of basic algorithm that involves building a search tree
         until predefined computational budget - time.
@@ -37,7 +37,8 @@ class MCTSTree:
             else:
                 reward = self.game.reward(node.game_state, node.game_state.active_player)
             self._backprop(node, reward)
-
+        if temperature is not None:
+            return self._sample_child_by_visit_count(temperature).prev_move
         return self._get_best_child().prev_move
 
     def _selection(self, current_node: MCTSNode) -> MCTSNode:
@@ -97,7 +98,16 @@ class MCTSTree:
             if leaf_node.parent_node is None:
                 return
             leaf_node = leaf_node.parent_node
+    def _sample_child_by_visit_count(self, temperature: float = 1.0) -> MCTSNode:
+        root_children = [child for child in self.root.children_nodes]
 
+        counts = np.array([child.visit_count for child in root_children], dtype=np.float64)
+        logits = np.power(counts, 1.0 / temperature)
+        probs_sum = np.sum(logits)
+
+        probs = logits / probs_sum
+        sampled_index = np.random.choice(len(root_children), p=probs)
+        return root_children[sampled_index]
     def _get_best_child(self) -> MCTSNode:
         root_children = [child for child in self.root.children_nodes]
         return max(root_children, key=lambda x: x.visit_count)

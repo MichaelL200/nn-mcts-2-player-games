@@ -26,6 +26,7 @@ class TrainerConfig:
     learning_rate: float = 0.001
     weight_decay: float = 1e-4
     buffer_size: int = 10000
+    temperature: float = 1.0
 
 class Trainer:
     def __init__(self, game: GameSimulation, model: ModelWrapper, model_path: str, config: TrainerConfig, device: str, rank: int, world_size: int) -> None:
@@ -73,7 +74,7 @@ class Trainer:
         move_count = 0
  
         while not self.game.is_terminal(state):
-            best_move = mcts.mcts_search(state)
+            best_move = mcts.mcts_search(state, temperature=self.config.temperature)
             action_prob = mcts.get_action_prob()
             state_tensor = self.model.encoder.encode(state)
 

@@ -5,6 +5,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from src.core.models.wrapper import ModelWrapper
 from src.core.training.trainer import Trainer, TrainerConfig
 from src.games.checkers.checkers import Checkers
+import numpy as np
 
 
 CONFIG = TrainerConfig(
@@ -26,24 +27,33 @@ def setup_distributed():
         world_size = int(os.environ["WORLD_SIZE"])# world_size is number of gpus
         rank = int(os.environ["RANK"])# rank is id in range(world_size)
         local_rank = int(os.environ["LOCAL_RANK"])# local rank when i have world_size 16 and 4 servers local rank will me range(0,4) in each server
+        try:
+            if torch.cuda.is_available():
+                dist.init_process_group(backend="nccl")
+                torch.cuda.set_device(local_rank)
+                device = f"cuda:{local_rank}"
+            else:
+                dist.init_process_group(backend="gloo")
+                device = "cpu"
+        except Exception as e:
+            print(f"Failed to initialize distributed environment: {e}")
+            rank = 0
+            world_size = 1
+            local_rank = 0
+            device = "cuda:0" if torch.cuda.is_available() else "cpu"
     else:
         rank = 0
         world_size = 1
         local_rank = 0
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    if torch.cuda.is_available():
-        dist.init_process_group(backend="nccl")
-        torch.cuda.set_device(local_rank)
-        device = f"cuda:{local_rank}"
-    else:
-        dist.init_process_group(backend="gloo")
-        device = "cpu"
         
     return rank, world_size, device, local_rank
 if __name__ == "__main__":
     rank, world_size, device,local_rank = setup_distributed()
     #print(f"Running on rank {rank}/{world_size} with device {device}")
     torch.manual_seed(42 + rank)
+    np.random.seed(42 + rank)
     MODEL_PATH = os.path.join("src", "core", "models", "checkers_alphazero_model.pt")
     game = Checkers()
     model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), MODEL_PATH)
