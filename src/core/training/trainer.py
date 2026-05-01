@@ -23,10 +23,10 @@ class TrainerConfig:
     num_batches: int = 100
     max_moves: int = 200
     explore_rate: float = 1.41
-    learning_rate: float = 0.001
+    learning_rate: float = 0.0001
     weight_decay: float = 1e-4
     buffer_size: int = 10000
-    temperature: float = 1.0
+    temperature: float = 0.7
 
 class Trainer:
     def __init__(self, game: GameSimulation, model: ModelWrapper, model_path: str, config: TrainerConfig, device: str, rank: int, world_size: int) -> None:

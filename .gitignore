@@ -178,4 +178,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-*.pt
+#*.pt
+checkpoints

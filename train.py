@@ -17,9 +17,10 @@ CONFIG = TrainerConfig(
     num_batches=100,
     max_moves=150,
     explore_rate=1.41,
-    learning_rate=0.001,
+    learning_rate=0.0001,
     weight_decay=1e-4,
     buffer_size=50000,
+    temperature=0.7
 )
 
 def setup_distributed():
