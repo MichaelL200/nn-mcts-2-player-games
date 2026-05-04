@@ -53,9 +53,17 @@ class MCTSTree:
         # MCTS + NN
         if self.model is not None:
             policy, value = self.model.predict(leaf_node.game_state)
-            for move in leaf_node.moves_not_taken:
+            legal_moves = list(leaf_node.moves_not_taken)
+            legal_indices = [self.game.encoder.move_to_index(move) for move in legal_moves]
+            legal_priors = np.array([policy[index] for index in legal_indices], dtype=np.float32)
 
-                p_move = policy[self.game.encoder.move_to_index(move)]
+            prior_sum = float(np.sum(legal_priors))
+            if prior_sum > 0:
+                legal_priors = legal_priors / prior_sum
+            elif len(legal_priors) > 0:
+                legal_priors = np.full(len(legal_priors), 1.0 / len(legal_priors), dtype=np.float32)
+
+            for move, p_move in zip(legal_moves, legal_priors):
                 new_state = self.game.make_move(deepcopy(leaf_node.game_state), move)
 
                 new_node = MCTSNode(

@@ -74,7 +74,8 @@ class Trainer:
         move_count = 0
  
         while not self.game.is_terminal(state):
-            best_move = mcts.mcts_search(state, temperature=self.config.temperature)
+            search_temperature = self.config.temperature if move_count < 12 else None
+            best_move = mcts.mcts_search(state, temperature=search_temperature)
             action_prob = mcts.get_action_prob()
             state_tensor = self.model.encoder.encode(state)
 
@@ -115,7 +116,7 @@ class Trainer:
  
         value_loss = F.mse_loss(predicted_values, target_values)
         pred_policy_log = F.log_softmax(predicted_policy_logits, dim=1)
-        policy_loss = -torch.sum(target_policies * pred_policy_log) / self.config.batch_size
+        policy_loss = -(target_policies * pred_policy_log).sum(dim=1).mean()
         
         total_loss = value_loss + policy_loss
         total_loss.backward()
