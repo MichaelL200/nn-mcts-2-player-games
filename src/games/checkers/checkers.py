@@ -62,23 +62,35 @@ class Checkers(GameSimulation):
                 white_absent = False
             elif slot == CheckersPiece.BLACK or slot == CheckersPiece.BLACK_QUEEN:
                 black_absent = False
-
+            
+        if len(self.get_moves(game_state)) == 0:
+            return True
         return white_absent or black_absent or self._is_draw(game_state)
 
     def reward(self, game_state: CheckersState, player: CheckersPlayer) -> int:
         """
         Returns the reward for the game with white player as the maximizing player.
         """
-        if self._is_draw(game_state):
-            return 0
+        white_has_pawns, black_has_pawns = False, False
 
-        mod = 1 if player == CheckersPlayer.WHITE else -1
+        
+        for slot in game_state.board.squares:
+            if slot == CheckersPiece.WHITE or slot == CheckersPiece.WHITE_QUEEN:
+                white_has_pawns = True
+            elif slot == CheckersPiece.BLACK or slot == CheckersPiece.BLACK_QUEEN:
+                black_has_pawns = True
+        if white_has_pawns and not black_has_pawns:
+            return 1 if player == CheckersPlayer.WHITE else -1
+        elif black_has_pawns and not white_has_pawns:
+            return 1 if player == CheckersPlayer.BLACK else -1
+        
+        if len(self.get_moves(game_state)) == 0:
+            loser = game_state.get_player()
+            winner = CheckersPlayer.BLACK if loser == CheckersPlayer.WHITE else CheckersPlayer.WHITE
+            return 1 if player == winner else -1
+        
+        return 0
 
-        for slot in game_state.get_board().get_squares():
-            if slot in self._pieces_from_player(CheckersPlayer.WHITE):
-                return 1 * mod
-            elif slot in self._pieces_from_player(CheckersPlayer.BLACK):
-                return -1 * mod
 
     def _is_draw(self, game_state: CheckersState) -> bool:
         avaible_moves = self.get_moves(game_state)
@@ -86,7 +98,7 @@ class Checkers(GameSimulation):
 
         if len(avaible_moves) == 0:
             if avaible_pieces:
-                return True
+                return False
             return False
         return False
 

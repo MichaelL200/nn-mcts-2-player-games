@@ -6,7 +6,7 @@
 #SBATCH --gres=gpu:4
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --time=24:00:00
+#SBATCH --time=47:00:00
 #SBATCH --output=logs/slurm_%j.log
 
 module load Miniconda3/4.9.2
