@@ -11,6 +11,7 @@ from ..mcts.mcts_tree import MCTSTree
 from ..models.architecture import GameNet
 from ..models.wrapper import ModelWrapper
 from .replay_buffer import ReplayBuffer
+import numpy as np
 
 
 @dataclass
@@ -94,14 +95,19 @@ class Trainer:
     def _training_phase(self) -> None:
         if self.rank == 0: print("Training neural network...", flush=True) 
         self.model.model.train()
-        loss = None
-        losses = []
+        all_phase_losses = []
         for epoch in range(self.config.epochs):
+            epoch_losses = []
             for _ in range(self.config.num_batches):
                 loss = self._training_step()
-                losses.append(loss.item())
-        if loss is not None:
-           if self.rank == 0: print(f"Training finished. Loss: {loss.item():.4f}", flush=True)
+                epoch_losses.append(loss.item())
+            if self.rank == 0:
+                avg_epoch_loss = np.mean(epoch_losses)
+                print(f"Epoch {epoch + 1}/{self.config.epochs} finished. Avg Loss: {avg_epoch_loss:.4f}", flush=True)
+            all_phase_losses.extend(epoch_losses)
+        if self.rank == 0 and all_phase_losses:
+            global_avg = np.mean(all_phase_losses)
+            print(f"Full Training Phase finished. Global Avg Loss: {global_avg:.4f}", flush=True)
  
         self.model.model.eval()
 
