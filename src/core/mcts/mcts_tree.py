@@ -29,6 +29,13 @@ class MCTSTree:
         self.root = MCTSNode(deepcopy(init_state),
                              self.game.get_moves(init_state))
         self._expansion(self.root)
+        if len(self.root.children_nodes) > 0:
+            alpha = 0.5
+            epsilon = 0.25
+            noise = np.random.dirichlet([alpha] * len(self.root.children_nodes))
+            
+            for i, child in enumerate(self.root.children_nodes):
+                child.P = (1 - epsilon) * child.P + epsilon * noise[i]
         start_time = time.time()
         while (time.time() - start_time) < self.time_limit:
             node = self._selection(self.root)
@@ -42,11 +49,8 @@ class MCTSTree:
         return self._get_best_child().prev_move
 
     def _selection(self, current_node: MCTSNode) -> MCTSNode:
-        while not self.game.is_terminal(current_node.game_state):
-            if len(current_node.moves_not_taken) != 0:
-                return current_node
+        while current_node.children_nodes:
             current_node = max(current_node.children_nodes, key=lambda node: node.get_ucb_score())
-
         return current_node
 
     def _expansion(self, leaf_node: MCTSNode) -> float:

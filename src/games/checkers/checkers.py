@@ -80,14 +80,13 @@ class Checkers(GameSimulation):
             elif slot == CheckersPiece.BLACK or slot == CheckersPiece.BLACK_QUEEN:
                 black_has_pawns = True
         if white_has_pawns and not black_has_pawns:
-            return 1 if player == CheckersPlayer.WHITE else -1
+            return CheckersPlayer.WHITE.value
         elif black_has_pawns and not white_has_pawns:
-            return 1 if player == CheckersPlayer.BLACK else -1
+            return CheckersPlayer.BLACK.value
         
         if len(self.get_moves(game_state)) == 0:
             loser = game_state.get_player()
-            winner = CheckersPlayer.BLACK if loser == CheckersPlayer.WHITE else CheckersPlayer.WHITE
-            return 1 if player == winner else -1
+            return CheckersPlayer.BLACK.value if loser == CheckersPlayer.WHITE else CheckersPlayer.WHITE.value
         
         return 0
 

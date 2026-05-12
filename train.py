@@ -1,4 +1,5 @@
 import os
+import random
 import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -10,11 +11,11 @@ import numpy as np
 
 CONFIG = TrainerConfig(
     episodes=200,
-    mcts_time=0.5,
-    batch_size=256,
-    iterations=20,
+    mcts_time=1.5,
+    batch_size=32,
+    iterations=50,
     epochs=5,
-    num_batches=100,
+    num_batches=10,
     max_moves=150,
     explore_rate=1.41,
     learning_rate=0.0001,
@@ -55,6 +56,7 @@ if __name__ == "__main__":
     #print(f"Running on rank {rank}/{world_size} with device {device}")
     torch.manual_seed(42 + rank)
     np.random.seed(42 + rank)
+    random.seed(42 + rank)
     MODEL_PATH = os.path.join("src", "core", "models", "checkers_alphazero_model.pt")
     game = Checkers()
     model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), MODEL_PATH)

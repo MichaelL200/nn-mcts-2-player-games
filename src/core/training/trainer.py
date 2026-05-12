@@ -72,9 +72,9 @@ class Trainer:
         
         game_history = []
         move_count = 0
- 
+        player_before_move = state.active_player
         while not self.game.is_terminal(state):
-            search_temperature = self.config.temperature if move_count < 12 else None
+            search_temperature = self.config.temperature if move_count < 30 else None
             best_move = mcts.mcts_search(state, temperature=search_temperature)
             action_prob = mcts.get_action_prob()
             state_tensor = self.model.encoder.encode(state)
@@ -87,21 +87,21 @@ class Trainer:
                 if self.rank == 0: print(f"{self.config.max_moves} moves reached, assuming draw.", flush=True)
                 return game_history, 0
  
-        first_player = self.game.get_starting_state().active_player
-        winner_value = self.game.reward(state, first_player)
+        #first_player = self.game.get_starting_state().active_player
+        winner_value = self.game.reward(state, player_before_move)
         return game_history, winner_value
 
     def _training_phase(self) -> None:
         if self.rank == 0: print("Training neural network...", flush=True) 
         self.model.model.train()
-        total_loss = None
- 
+        loss = None
+        losses = []
         for epoch in range(self.config.epochs):
             for _ in range(self.config.num_batches):
-                total_loss = self._training_step()
- 
-        if total_loss is not None:
-           if self.rank == 0: print(f"Training finished. Loss: {total_loss.item():.4f}", flush=True)
+                loss = self._training_step()
+                losses.append(loss.item())
+        if loss is not None:
+           if self.rank == 0: print(f"Training finished. Loss: {loss.item():.4f}", flush=True)
  
         self.model.model.eval()
 
@@ -118,6 +118,7 @@ class Trainer:
         pred_policy_log = F.log_softmax(predicted_policy_logits, dim=1)
         policy_loss = -(target_policies * pred_policy_log).sum(dim=1).mean()
         
+        print(f"Value loss: {value_loss.item():.4f}, Policy loss: {policy_loss.item():.4f}")
         total_loss = value_loss + policy_loss
         total_loss.backward()
         self.optimizer.step()
