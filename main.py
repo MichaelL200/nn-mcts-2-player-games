@@ -20,5 +20,5 @@ if __name__ == "__main__":
         print("         To train the neural network, run train.py")
     
     ai =  MCTSTree(game, model, 1.41, 1)
-    loop = GameLoop(game, ui, gamemode=Gamemode.PLAYER_VS_AI, ai=ai)
+    loop = GameLoop(game, ui, gamemode=Gamemode.AI_VS_AI, ai=ai)
     loop.run(game.get_starting_state())

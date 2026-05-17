@@ -76,7 +76,7 @@ class Trainer:
         player_before_move = state.active_player
         while not self.game.is_terminal(state):
             search_temperature = self.config.temperature if move_count < 30 else None
-            best_move = mcts.mcts_search(state, temperature=search_temperature)
+            best_move = mcts.mcts_search(state, temperature=search_temperature, is_training=True)
             action_prob = mcts.get_action_prob()
             state_tensor = self.model.encoder.encode(state)
 

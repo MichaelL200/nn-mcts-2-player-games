@@ -19,7 +19,7 @@ class MCTSTree:
         self.time_limit = time_limit    # time in seconds
         self.model = model
 
-    def mcts_search(self, init_state: GameState,temperature = None) -> Move:
+    def mcts_search(self, init_state: GameState,temperature = None, is_training = False) -> Move:
         """
         Implementation of basic algorithm that involves building a search tree
         until predefined computational budget - time.
@@ -29,7 +29,7 @@ class MCTSTree:
         self.root = MCTSNode(deepcopy(init_state),
                              self.game.get_moves(init_state))
         self._expansion(self.root)
-        if len(self.root.children_nodes) > 0:
+        if is_training and len(self.root.children_nodes) > 0:
             alpha = 0.5
             epsilon = 0.25
             noise = np.random.dirichlet([alpha] * len(self.root.children_nodes))
