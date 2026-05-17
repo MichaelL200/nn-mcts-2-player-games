@@ -123,8 +123,8 @@ class Trainer:
         value_loss = F.mse_loss(predicted_values, target_values)
         pred_policy_log = F.log_softmax(predicted_policy_logits, dim=1)
         policy_loss = -(target_policies * pred_policy_log).sum(dim=1).mean()
-        
-        print(f"Value loss: {value_loss.item():.4f}, Policy loss: {policy_loss.item():.4f}")
+        if self.rank ==0:
+            print(f"Value loss: {value_loss.item():.4f}, Policy loss: {policy_loss.item():.4f}")
         total_loss = value_loss + policy_loss
         total_loss.backward()
         self.optimizer.step()

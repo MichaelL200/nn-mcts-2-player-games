@@ -42,7 +42,13 @@ class MCTSTree:
             if not self.game.is_terminal(node.game_state):
                 reward = self._expansion(node)
             else:
-                reward = self.game.reward(node.game_state, node.game_state.active_player)
+                abs_winner = self.game.reward(node.game_state, node.game_state.active_player)
+                if abs_winner == 0:
+                    reward = 0.0
+                elif abs_winner == node.game_state.active_player.value:
+                    reward = 1.0
+                else:
+                    reward = -1.0
             self._backprop(node, reward)
         if temperature is not None:
             return self._sample_child_by_visit_count(temperature).prev_move
@@ -97,15 +103,15 @@ class MCTSTree:
 
     def _simulation(self, state: GameState) -> float:
         current_state = deepcopy(state)
-        while not self.game.is_terminal(current_state):
+        while not self.game.is_terminal(current_state) :
             current_state = self.game.make_random_move(current_state)
-
-        return self.game.reward(current_state, state.active_player)
+        abs_winner = self.game.reward(current_state, state.active_player)    
+        return 1.0 if abs_winner == state.active_player.value else -1.0
 
     def _backprop(self, leaf_node: MCTSNode, reward: float) -> None:
         while True:
-            leaf_node.q_value += reward
             reward = -reward
+            leaf_node.q_value += reward
             leaf_node.visit_count += 1
             if leaf_node.parent_node is None:
                 return

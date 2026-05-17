@@ -7,11 +7,12 @@ from src.core.models.wrapper import ModelWrapper
 from src.core.training.trainer import Trainer, TrainerConfig
 from src.games.checkers.checkers import Checkers
 import numpy as np
+from datetime import timedelta
 
 
 CONFIG = TrainerConfig(
-    episodes=200,
-    mcts_time=1.5,
+    episodes=100,
+    mcts_time=0.8,
     batch_size=32,
     iterations=50,
     epochs=5,
@@ -31,7 +32,7 @@ def setup_distributed():
         local_rank = int(os.environ["LOCAL_RANK"])# local rank when i have world_size 16 and 4 servers local rank will me range(0,4) in each server
         try:
             if torch.cuda.is_available():
-                dist.init_process_group(backend="nccl")
+                dist.init_process_group(backend="nccl", timeout=timedelta(seconds=7200))
                 torch.cuda.set_device(local_rank)
                 device = f"cuda:{local_rank}"
             else:
