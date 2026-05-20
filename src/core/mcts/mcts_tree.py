@@ -19,7 +19,7 @@ class MCTSTree:
         self.time_limit = time_limit    # time in seconds
         self.model = model
 
-    def mcts_search(self, init_state: GameState) -> Move:
+    def mcts_search(self, init_state: GameState,temperature = None, is_training = False) -> Move:
         """
         Implementation of basic algorithm that involves building a search tree
         until predefined computational budget - time.
@@ -29,32 +29,51 @@ class MCTSTree:
         self.root = MCTSNode(deepcopy(init_state),
                              self.game.get_moves(init_state))
         self._expansion(self.root)
+        if is_training and len(self.root.children_nodes) > 0:
+            alpha = 0.5
+            epsilon = 0.25
+            noise = np.random.dirichlet([alpha] * len(self.root.children_nodes))
+            
+            for i, child in enumerate(self.root.children_nodes):
+                child.P = (1 - epsilon) * child.P + epsilon * noise[i]
         start_time = time.time()
         while (time.time() - start_time) < self.time_limit:
             node = self._selection(self.root)
             if not self.game.is_terminal(node.game_state):
                 reward = self._expansion(node)
             else:
-                reward = self.game.reward(node.game_state, node.game_state.active_player)
+                abs_winner = self.game.reward(node.game_state, node.game_state.active_player)
+                if abs_winner == 0:
+                    reward = 0.0
+                elif abs_winner == node.game_state.active_player.value:
+                    reward = 1.0
+                else:
+                    reward = -1.0
             self._backprop(node, reward)
-
+        if temperature is not None:
+            return self._sample_child_by_visit_count(temperature).prev_move
         return self._get_best_child().prev_move
 
     def _selection(self, current_node: MCTSNode) -> MCTSNode:
-        while not self.game.is_terminal(current_node.game_state):
-            if len(current_node.moves_not_taken) != 0:
-                return current_node
+        while current_node.children_nodes:
             current_node = max(current_node.children_nodes, key=lambda node: node.get_ucb_score())
-
         return current_node
 
     def _expansion(self, leaf_node: MCTSNode) -> float:
         # MCTS + NN
         if self.model is not None:
             policy, value = self.model.predict(leaf_node.game_state)
-            for move in leaf_node.moves_not_taken:
+            legal_moves = list(leaf_node.moves_not_taken)
+            legal_indices = [self.game.encoder.move_to_index(move) for move in legal_moves]
+            legal_priors = np.array([policy[index] for index in legal_indices], dtype=np.float32)
 
-                p_move = policy[self.game.encoder.move_to_index(move)]
+            prior_sum = float(np.sum(legal_priors))
+            if prior_sum > 0:
+                legal_priors = legal_priors / prior_sum
+            elif len(legal_priors) > 0:
+                legal_priors = np.full(len(legal_priors), 1.0 / len(legal_priors), dtype=np.float32)
+
+            for move, p_move in zip(legal_moves, legal_priors):
                 new_state = self.game.make_move(deepcopy(leaf_node.game_state), move)
 
                 new_node = MCTSNode(
@@ -84,20 +103,29 @@ class MCTSTree:
 
     def _simulation(self, state: GameState) -> float:
         current_state = deepcopy(state)
-        while not self.game.is_terminal(current_state):
+        while not self.game.is_terminal(current_state) :
             current_state = self.game.make_random_move(current_state)
-
-        return self.game.reward(current_state, state.active_player)
+        abs_winner = self.game.reward(current_state, state.active_player)    
+        return 1.0 if abs_winner == state.active_player.value else -1.0
 
     def _backprop(self, leaf_node: MCTSNode, reward: float) -> None:
         while True:
-            leaf_node.q_value += reward
             reward = -reward
+            leaf_node.q_value += reward
             leaf_node.visit_count += 1
             if leaf_node.parent_node is None:
                 return
             leaf_node = leaf_node.parent_node
+    def _sample_child_by_visit_count(self, temperature: float = 1.0) -> MCTSNode:
+        root_children = [child for child in self.root.children_nodes]
 
+        counts = np.array([child.visit_count for child in root_children], dtype=np.float64)
+        logits = np.power(counts, 1.0 / temperature)
+        probs_sum = np.sum(logits)
+
+        probs = logits / probs_sum
+        sampled_index = np.random.choice(len(root_children), p=probs)
+        return root_children[sampled_index]
     def _get_best_child(self) -> MCTSNode:
         root_children = [child for child in self.root.children_nodes]
         return max(root_children, key=lambda x: x.visit_count)

@@ -8,6 +8,7 @@ from ..interfaces import GameSimulation
 from ..mcts.mcts_tree import MCTSTree
 from ..models.wrapper import ModelWrapper
 from .replay_buffer import ReplayBuffer
+import numpy as np
 
 
 @dataclass
@@ -20,9 +21,10 @@ class TrainerConfig:
     num_batches: int = 100
     max_moves: int = 200
     explore_rate: float = 1.41
-    learning_rate: float = 0.001
+    learning_rate: float = 0.0001
     weight_decay: float = 1e-4
     buffer_size: int = 10000
+    temperature: float = 0.7
 
 
 class Trainer:
@@ -79,9 +81,10 @@ class Trainer:
 
         game_history = []
         move_count = 0
-
+        player_before_move = state.active_player
         while not self.game.is_terminal(state):
-            best_move = mcts.mcts_search(state)
+            search_temperature = self.config.temperature if move_count < 30 else None
+            best_move = mcts.mcts_search(state, temperature=search_temperature, is_training=True)
             action_prob = mcts.get_action_prob()
             state_tensor = self.model.encoder.encode(state)
 
@@ -93,25 +96,29 @@ class Trainer:
                 if self.rank == 0:
                     print(f"{self.config.max_moves} moves reached, assuming draw.", flush=True)
                 return game_history, 0
-
-        first_player = self.game.get_starting_state().active_player
-        winner_value = self.game.reward(state, first_player)
+ 
+        #first_player = self.game.get_starting_state().active_player
+        winner_value = self.game.reward(state, player_before_move)
         return game_history, winner_value
 
     def _training_phase(self) -> None:
         if self.rank == 0:
             print("Training neural network...", flush=True)
         self.model.model.train()
-        total_loss = None
-
+        all_phase_losses = []
         for epoch in range(self.config.epochs):
+            epoch_losses = []
             for _ in range(self.config.num_batches):
-                total_loss = self._training_step()
-
-        if total_loss is not None:
+                loss = self._training_step()
+                epoch_losses.append(loss.item())
             if self.rank == 0:
-                print(f"Training finished. Loss: {total_loss.item():.4f}", flush=True)
-
+                avg_epoch_loss = np.mean(epoch_losses)
+                print(f"Epoch {epoch + 1}/{self.config.epochs} finished. Avg Loss: {avg_epoch_loss:.4f}", flush=True)
+            all_phase_losses.extend(epoch_losses)
+        if self.rank == 0 and all_phase_losses:
+            global_avg = np.mean(all_phase_losses)
+            print(f"Full Training Phase finished. Global Avg Loss: {global_avg:.4f}", flush=True)
+ 
         self.model.model.eval()
 
     def _training_step(self) -> torch.Tensor:
@@ -125,8 +132,9 @@ class Trainer:
 
         value_loss = F.mse_loss(predicted_values, target_values)
         pred_policy_log = F.log_softmax(predicted_policy_logits, dim=1)
-        policy_loss = -torch.sum(target_policies * pred_policy_log) / self.config.batch_size
-
+        policy_loss = -(target_policies * pred_policy_log).sum(dim=1).mean()
+        if self.rank ==0:
+            print(f"Value loss: {value_loss.item():.4f}, Policy loss: {policy_loss.item():.4f}")
         total_loss = value_loss + policy_loss
         total_loss.backward()
         self.optimizer.step()

@@ -8,7 +8,7 @@ class ModelWrapper:
     def __init__(self, model: torch.nn.Module, encoder: StateEncoder, device: str = 'cpu'):
         self.device = torch.device(device)
         self.model = model.to(self.device)
-        self.model.eval()  # Ustawiamy model w tryb inferencji (nie trenujemy go w MCTS)
+        self.model.eval() 
         self.encoder = encoder
 
     @staticmethod
