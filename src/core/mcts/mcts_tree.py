@@ -19,7 +19,7 @@ class MCTSTree:
         self.time_limit = time_limit    # time in seconds
         self.model = model
 
-    def mcts_search(self, init_state: GameState,temperature = None, is_training = False) -> Move:
+    def mcts_search(self, init_state: GameState, temperature=None, is_training=False) -> Move:
         """
         Implementation of basic algorithm that involves building a search tree
         until predefined computational budget - time.
@@ -33,7 +33,7 @@ class MCTSTree:
             alpha = 0.5
             epsilon = 0.25
             noise = np.random.dirichlet([alpha] * len(self.root.children_nodes))
-            
+
             for i, child in enumerate(self.root.children_nodes):
                 child.P = (1 - epsilon) * child.P + epsilon * noise[i]
         start_time = time.time()
@@ -103,9 +103,9 @@ class MCTSTree:
 
     def _simulation(self, state: GameState) -> float:
         current_state = deepcopy(state)
-        while not self.game.is_terminal(current_state) :
+        while not self.game.is_terminal(current_state):
             current_state = self.game.make_random_move(current_state)
-        abs_winner = self.game.reward(current_state, state.active_player)    
+        abs_winner = self.game.reward(current_state, state.active_player)
         return 1.0 if abs_winner == state.active_player.value else -1.0
 
     def _backprop(self, leaf_node: MCTSNode, reward: float) -> None:
@@ -116,6 +116,7 @@ class MCTSTree:
             if leaf_node.parent_node is None:
                 return
             leaf_node = leaf_node.parent_node
+
     def _sample_child_by_visit_count(self, temperature: float = 1.0) -> MCTSNode:
         root_children = [child for child in self.root.children_nodes]
 
@@ -126,6 +127,7 @@ class MCTSTree:
         probs = logits / probs_sum
         sampled_index = np.random.choice(len(root_children), p=probs)
         return root_children[sampled_index]
+
     def _get_best_child(self) -> MCTSNode:
         root_children = [child for child in self.root.children_nodes]
         return max(root_children, key=lambda x: x.visit_count)
@@ -147,7 +149,7 @@ class MCTSTree:
             else:
                 action_size = inner_model.action_size
         else:
-            action_size = self.game.get_action_size()
+            action_size = self.game.encoder.action_size
         action_probs = np.zeros(action_size, dtype=np.float32)
 
         counts = [child.visit_count for child in self.root.children_nodes]

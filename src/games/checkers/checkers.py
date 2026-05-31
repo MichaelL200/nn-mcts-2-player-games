@@ -61,7 +61,7 @@ class Checkers(GameSimulation):
                 white_absent = False
             elif slot == CheckersPiece.BLACK or slot == CheckersPiece.BLACK_QUEEN:
                 black_absent = False
-            
+
         if len(self.get_moves(game_state)) == 0:
             return True
         return white_absent or black_absent or self._is_draw(game_state)
@@ -72,7 +72,6 @@ class Checkers(GameSimulation):
         """
         white_has_pawns, black_has_pawns = False, False
 
-        
         for slot in game_state.board.squares:
             if slot == CheckersPiece.WHITE or slot == CheckersPiece.WHITE_QUEEN:
                 white_has_pawns = True
@@ -82,13 +81,12 @@ class Checkers(GameSimulation):
             return CheckersPlayer.WHITE.value
         elif black_has_pawns and not white_has_pawns:
             return CheckersPlayer.BLACK.value
-        
+
         if len(self.get_moves(game_state)) == 0:
             loser = game_state.get_player()
             return CheckersPlayer.BLACK.value if loser == CheckersPlayer.WHITE else CheckersPlayer.WHITE.value
-        
-        return 0
 
+        return 0
 
     def _is_draw(self, game_state: CheckersState) -> bool:
         avaible_moves = self.get_moves(game_state)

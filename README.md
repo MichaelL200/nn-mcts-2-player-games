@@ -36,7 +36,7 @@ Note: `__init__.py` files are omitted in the tree below for readability.
 │   ├── core                     <- Generic AlphaZero-style engine components
 │   │   ├── game_loop.py         <- Self-play and evaluation loop logic
 │   │   ├── interfaces           <- Abstract interfaces used by the core engine
-│   │   │   ├── game_simulation.py
+│   │   │   ├── game.py
 │   │   │   ├── game_state.py
 │   │   │   ├── game_state_encoder.py
 │   │   │   └── game_ui.py

@@ -96,8 +96,8 @@ class Trainer:
                 if self.rank == 0:
                     print(f"{self.config.max_moves} moves reached, assuming draw.", flush=True)
                 return game_history, 0
- 
-        #first_player = self.game.get_starting_state().active_player
+
+        # first_player = self.game.get_starting_state().active_player
         winner_value = self.game.reward(state, player_before_move)
         return game_history, winner_value
 
@@ -118,7 +118,7 @@ class Trainer:
         if self.rank == 0 and all_phase_losses:
             global_avg = np.mean(all_phase_losses)
             print(f"Full Training Phase finished. Global Avg Loss: {global_avg:.4f}", flush=True)
- 
+
         self.model.model.eval()
 
     def _training_step(self) -> torch.Tensor:
@@ -133,7 +133,7 @@ class Trainer:
         value_loss = F.mse_loss(predicted_values, target_values)
         pred_policy_log = F.log_softmax(predicted_policy_logits, dim=1)
         policy_loss = -(target_policies * pred_policy_log).sum(dim=1).mean()
-        if self.rank ==0:
+        if self.rank == 0:
             print(f"Value loss: {value_loss.item():.4f}, Policy loss: {policy_loss.item():.4f}")
         total_loss = value_loss + policy_loss
         total_loss.backward()
