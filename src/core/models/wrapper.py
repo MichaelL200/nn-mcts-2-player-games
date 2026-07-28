@@ -8,7 +8,7 @@ class ModelWrapper:
     def __init__(self, model: torch.nn.Module, encoder: StateEncoder, device: str = 'cpu'):
         self.device = torch.device(device)
         self.model = model.to(self.device)
-        self.model.eval() 
+        self.model.eval()
         self.encoder = encoder
 
     @staticmethod
@@ -18,8 +18,12 @@ class ModelWrapper:
         from . import GameNet
         print(f"Loading existing model from {path} on {device}...")
         net = GameNet(action_size=encoder.action_size, in_channels=encoder.input_channels).to(device)
-        state_dict = torch.load(path, map_location=device, weights_only=True)
-        net.load_state_dict(state_dict)
+        try:
+            state_dict = torch.load(path, map_location=device, weights_only=True)
+            net.load_state_dict(state_dict)
+        except Exception as exc:
+            print(f"WARNING: Failed to load incompatible model checkpoint: {exc}")
+            return None
         return ModelWrapper(net, encoder, device)
 
     @staticmethod

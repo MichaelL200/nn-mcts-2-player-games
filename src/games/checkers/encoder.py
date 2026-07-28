@@ -1,7 +1,7 @@
 import torch
 
 from ...core.interfaces import GameState, StateEncoder, Move
-from .board import CheckersPiece
+from .board import CheckersPiece, CheckersBoard
 from .state import CheckersPlayer
 
 
@@ -12,7 +12,7 @@ class CheckersEncoder(StateEncoder):
 
     @property
     def action_size(self):
-        return 1024
+        return CheckersBoard.PLAYABLE_SQUARES * CheckersBoard.PLAYABLE_SQUARES
 
     def move_to_index(self, move: Move) -> int:
         # changes string moves to integer
@@ -22,21 +22,18 @@ class CheckersEncoder(StateEncoder):
             parts = move.split('x')
         start_idx = int(parts[0])
         final_idx = int(parts[-1])
-        return start_idx * 32 + final_idx
+        return start_idx * CheckersBoard.PLAYABLE_SQUARES + final_idx
 
     def encode(self, game_state: GameState) -> torch.Tensor:
-        tensor = torch.zeros(1, 5, 8, 8, dtype=torch.float32)
+        tensor = torch.zeros(1, 5, CheckersBoard.BOARD_SIZE, CheckersBoard.BOARD_SIZE, dtype=torch.float32)
         board = game_state.board
-        for index in range(32):
+        for index in range(CheckersBoard.PLAYABLE_SQUARES):
             piece = board.get_piece(index)
 
             if piece is None or piece == CheckersPiece.EMPTY:
                 continue
-            row = index // 4
-            if row % 2 == 0:
-                col = (index % 4) * 2
-            else:
-                col = (index % 4) * 2 + 1
+            row = index // CheckersBoard.SQUARES_PER_ROW
+            col = (index % CheckersBoard.SQUARES_PER_ROW) * 2 + (1 if row % 2 == 0 else 0)
             if piece == CheckersPiece.WHITE:
                 tensor[0, 0, row, col] = 1.0
             elif piece == CheckersPiece.WHITE_QUEEN:
