@@ -1,5 +1,6 @@
+from pathlib import Path
+
 import pygame
-import pkg_resources
 from ..board import CheckersPiece
 from ..state import CheckersState
 
@@ -26,8 +27,8 @@ class Display:
         return {piece: pygame.transform.scale(img, size) for piece, img in raw.items()}
 
     def _load_image(self, image_name: str) -> pygame.Surface:
-        image_path = pkg_resources.resource_filename(__name__, f"assets/{image_name}")
-        return pygame.image.load(image_path)
+        image_path = Path(__file__).resolve().parent / "assets" / image_name
+        return pygame.image.load(str(image_path))
 
     def _get_piece_image(self, piece: CheckersPiece) -> pygame.Surface | None:
         return self._image_cache.get(piece)
