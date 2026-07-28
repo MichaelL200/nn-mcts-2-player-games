@@ -9,11 +9,12 @@ class Display:
     def __init__(self, width: int, height: int):
         self.width = width
         self.height = height
-        self.square_size = min(self.width, self.height) // 8
+        self.board_size = 10
+        self.square_size = min(self.width, self.height) // self.board_size
         self.highlighted_squares: dict[tuple[int, int], tuple[int, int, int]] = {}
         self.screen = self._init_screen(self.width, self.height)
-        self.offset_x = (self.width - self.square_size * 8) // 2
-        self.offset_y = (self.height - self.square_size * 8) // 2
+        self.offset_x = (self.width - self.square_size * self.board_size) // 2
+        self.offset_y = (self.height - self.square_size * self.board_size) // 2
         self._image_cache: dict[CheckersPiece, pygame.Surface] = self._load_images()
 
     def _load_images(self) -> dict[CheckersPiece, pygame.Surface]:
@@ -37,11 +38,11 @@ class Display:
         self.screen.fill((230, 230, 230))
         pieces = state.get_board().get_squares()
 
-        for j in range(8):
-            for i in range(8):
+        for j in range(self.board_size):
+            for i in range(self.board_size):
                 color = self.highlighted_squares.get(
                     (i, j),
-                    (255, 255, 255) if (i + j) % 2 != 0 else (0, 0, 0),
+                    (0, 0, 0) if (i + j) % 2 != 0 else (255, 255, 255),
                 )
 
                 pygame.draw.rect(
@@ -56,7 +57,7 @@ class Display:
                 )
 
                 if i % 2 != j % 2:
-                    indx = j * 4 + i // 2
+                    indx = j * (self.board_size // 2) + i // 2
                     piece = pieces[indx]
                     if piece != CheckersPiece.EMPTY:
                         img = self._get_piece_image(piece)

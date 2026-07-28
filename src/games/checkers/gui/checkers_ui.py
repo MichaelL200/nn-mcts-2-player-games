@@ -102,17 +102,17 @@ class CheckersUI(GameUI):
         return x, y
 
     @staticmethod
-    def _idx32_to_8x8coords(idx: int) -> tuple[int, int]:
-        y = idx // 4
-        x = (idx % 4) * 2 + (y % 2 == 0)
+    def _idx50_to_10x10coords(idx: int) -> tuple[int, int]:
+        y = idx // 5
+        x = (idx % 5) * 2 + (y % 2 == 0)
         return x, y
 
     def _convert_moves(self, moves_str: list[Move]) -> list[tuple[tuple[int, int], tuple[int, int]]]:
         converted = []
         for move_str in moves_str:
             parts = move_str.split("x") if "x" in move_str else move_str.split("-")
-            start = self._idx32_to_8x8coords(int(parts[0]))
-            end = self._idx32_to_8x8coords(int(parts[-1]))
+            start = self._idx50_to_10x10coords(int(parts[0]))
+            end = self._idx50_to_10x10coords(int(parts[-1]))
             converted.append((start, end))
         return converted
 
