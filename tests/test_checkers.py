@@ -58,10 +58,11 @@ def test_capture_stops_on_promotion_row():
 
     state = CheckersState(CheckersBoard(squares), CheckersPlayer.WHITE)
 
-    assert game.get_moves(state) == ['12x1']
+    assert game.get_moves(state) == ['12x1x10']
 
-    next_state = game.make_move(state, '12x1')
-    assert next_state.board.get_piece(1) == CheckersPiece.WHITE_QUEEN
+    next_state = game.make_move(state, '12x1x10')
+
+    assert next_state.board.get_piece(10) == CheckersPiece.WHITE
     assert next_state.get_player() == CheckersPlayer.BLACK
 
 

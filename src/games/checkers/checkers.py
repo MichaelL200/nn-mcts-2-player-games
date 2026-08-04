@@ -35,7 +35,8 @@ class Checkers(GameSimulation):
         capture_moves = self._capture_moves(game_state)
 
         if len(capture_moves) > 0:
-            return capture_moves
+            max_captures = max(move.count('x') for move in capture_moves)
+            return [move for move in capture_moves if move.count('x') == max_captures]
 
         return self._standard_moves(game_state)
 
@@ -174,9 +175,6 @@ class Checkers(GameSimulation):
             next_state.board.set_piece(landing_index, piece)
 
             next_move = f"{move_string}x{landing_index}"
-            if self._is_promotion_square(piece, landing_index):
-                sequences.append(next_move)
-                continue
 
             continuations = self._capture_sequences_for_man(next_state, landing_index, next_move)
             if continuations:
