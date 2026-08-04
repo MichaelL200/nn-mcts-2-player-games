@@ -18,7 +18,7 @@ class CheckersUI(GameUI):
 
     def render(self, state: CheckersState) -> None:
         self.display.draw_board(state)
-        pygame.display.update()
+        self.display.window.flip()
 
     def get_player_move(self, state: CheckersState, valid_moves: list[Move]) -> Move | None:
         valid_coords = self._convert_moves(valid_moves)
@@ -27,6 +27,8 @@ class CheckersUI(GameUI):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 raise SystemExit
+            elif event.type == pygame.WINDOWRESIZED:
+                self.display.update_dimensions()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 xy_new = self._mouse_position_to_board_position(pygame.mouse.get_pos())
@@ -64,7 +66,7 @@ class CheckersUI(GameUI):
             for square in inbetween:
                 fake_board[square] = CheckersPiece.EMPTY
             self.display.draw_board(fake_state)
-            pygame.display.update()
+            self.display.window.flip()
             pygame.time.wait(500)
 
     def show_game_over(self, state: CheckersState) -> bool:
@@ -83,6 +85,8 @@ class CheckersUI(GameUI):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     return False
+                elif event.type == pygame.WINDOWRESIZED:
+                    self.display.update_dimensions()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if button_rect.collidepoint(event.pos):
                         return True
@@ -90,7 +94,7 @@ class CheckersUI(GameUI):
             self.display.draw_board(state)
             pygame.draw.rect(self.display.screen, button_color, button_rect)
             self.display.screen.blit(text, text_rect)
-            pygame.display.update()
+            self.display.window.flip()
 
     def quit(self) -> None:
         pygame.quit()
