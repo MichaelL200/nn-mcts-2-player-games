@@ -44,7 +44,7 @@ class MCTSTree:
         while not self.game.is_terminal(current_node.game_state):
             if len(current_node.moves_not_taken) != 0:
                 return current_node
-            current_node = max(current_node.children_nodes, key=lambda node: node.get_ucb_score())
+            current_node = max(current_node.children_nodes, key=lambda node: node.get_ucb_score(self.explore_rate))
 
         return current_node
 
@@ -102,18 +102,8 @@ class MCTSTree:
         root_children = [child for child in self.root.children_nodes]
         return max(root_children, key=lambda x: x.visit_count)
 
-    def get_move_probs(self) -> str:
-        sorted_kids = sorted(self.root.children_nodes,
-                             key=lambda x: int(x.prev_move))
-        lst = [
-            f"{child.prev_move} {child.q_value/child.visit_count:.3}" for child in sorted_kids]
-        return " ".join(lst) + '\n'
-
     def get_action_prob(self) -> np.ndarray:
-        # Function for training
-        # If no model is provided, assume default action space size
-        action_size = self.model.model.action_size if self.model is not None else self.game.get_action_size()
-        action_probs = np.zeros(action_size, dtype=np.float32)
+        action_probs = np.zeros(self.game.encoder.action_size, dtype=np.float32)
 
         counts = [child.visit_count for child in self.root.children_nodes]
         total_visits = sum(counts)
