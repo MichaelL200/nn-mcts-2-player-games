@@ -29,6 +29,6 @@ if __name__ == "__main__":
         print("         The AI will use classic MCTS with random rollouts.")
         print(f"         To train the neural network, run: python train.py --game {args.game}")
 
-    ai =  MCTSTree(game, model, 1.41, 1)
+    ai = MCTSTree(game, model, 1.41, 1)
     loop = GameLoop(game, ui, gamemode=Gamemode.PLAYER_VS_AI, ai=ai)
     loop.run(game.get_starting_state())
