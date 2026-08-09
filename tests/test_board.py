@@ -1,4 +1,4 @@
-from src.checkers import CheckersBoard, CheckersPiece
+from src.games.checkers import CheckersBoard, CheckersPiece
 
 
 def test_get_left_up_present():

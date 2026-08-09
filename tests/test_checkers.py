@@ -1,4 +1,4 @@
-from src.checkers import Checkers, CheckersPiece, CheckersPlayer, CheckersState, CheckersBoard
+from src.games.checkers import Checkers, CheckersPiece, CheckersPlayer, CheckersState, CheckersBoard
 
 
 def test_is_terminal_white_wins():
