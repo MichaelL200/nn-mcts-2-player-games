@@ -4,6 +4,7 @@ packaging==24.2
 pluggy==1.5.0
 pygame==2.6.1
 pytest==8.3.5
+torch==2.11.0
 tqdm==4.67.1
 flake8==7.3.0
 pre_commit==4.6.0
