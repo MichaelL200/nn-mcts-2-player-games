@@ -135,3 +135,7 @@ class ChessState(GameState):
             digest ^= _EN_PASSANT_FILE_HASHES[col]
 
         return digest
+
+
+def piece_color(piece: ChessPiece) -> ChessPlayer:
+    return ChessPlayer.WHITE if piece > 0 else ChessPlayer.BLACK
