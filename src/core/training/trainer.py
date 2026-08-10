@@ -19,7 +19,7 @@ class TrainerConfig:
     iterations: int = 10
     epochs: int = 5
     num_batches: int = 100
-    max_moves: int = 200
+    max_moves: int = 500  # Safety net only - NOT a draw rule
     explore_rate: float = 1.41
     learning_rate: float = 0.0001
     weight_decay: float = 1e-4
@@ -94,7 +94,14 @@ class Trainer:
 
             if move_count >= self.config.max_moves:
                 if self.rank == 0:
-                    print(f"{self.config.max_moves} moves reached, assuming draw.", flush=True)
+                    print(
+                        f"WARNING: safety cap of {self.config.max_moves} moves hit "
+                        "without a real game-over condition (win/loss/draw) being "
+                        "detected. This should not normally happen - treating as an "
+                        "inconclusive game (reward 0) for training purposes, but "
+                        "consider investigating why is_terminal() never fired.",
+                        flush=True,
+                    )
                 return game_history, 0
 
         # first_player = self.game.get_starting_state().active_player

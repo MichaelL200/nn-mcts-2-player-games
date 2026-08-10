@@ -17,7 +17,7 @@ CONFIG = TrainerConfig(
     iterations=50,
     epochs=5,
     num_batches=10,
-    max_moves=150,
+    max_moves=500,
     explore_rate=1.41,
     learning_rate=0.0001,
     weight_decay=1e-4,
@@ -28,9 +28,10 @@ CONFIG = TrainerConfig(
 
 def setup_distributed():
     if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        world_size = int(os.environ["WORLD_SIZE"])# world_size is number of gpus
-        rank = int(os.environ["RANK"])# rank is id in range(world_size)
-        local_rank = int(os.environ["LOCAL_RANK"])# local rank when i have world_size 16 and 4 servers local rank will me range(0,4) in each server
+        world_size = int(os.environ["WORLD_SIZE"])  # world_size is number of gpus
+        rank = int(os.environ["RANK"])  # rank is id in range(world_size)
+        local_rank = int(os.environ["LOCAL_RANK"])
+        # local rank ranges from 0 to 3 on each server when world_size is 16
         try:
             if torch.cuda.is_available():
                 dist.init_process_group(backend="nccl", timeout=timedelta(seconds=7200))
@@ -51,7 +52,6 @@ def setup_distributed():
         local_rank = 0
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-        
     return rank, world_size, device, local_rank
 
 
