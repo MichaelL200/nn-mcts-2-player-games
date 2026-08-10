@@ -27,6 +27,7 @@ def test_is_terminal_start():
 
 
 def test_starting_state_uses_10x10_board():
+
     game = Checkers()
     state = game.get_starting_state()
     squares = state.board.get_squares().tolist()
@@ -39,6 +40,7 @@ def test_starting_state_uses_10x10_board():
 
 
 def test_white_man_can_capture_backward():
+
     game = Checkers()
     squares = [CheckersPiece.EMPTY] * CheckersBoard.PLAYABLE_SQUARES
     squares[12] = CheckersPiece.WHITE
@@ -50,6 +52,7 @@ def test_white_man_can_capture_backward():
 
 
 def test_capture_stops_on_promotion_row():
+
     game = Checkers()
     squares = [CheckersPiece.EMPTY] * CheckersBoard.PLAYABLE_SQUARES
     squares[12] = CheckersPiece.WHITE
@@ -67,6 +70,7 @@ def test_capture_stops_on_promotion_row():
 
 
 def test_queen_has_flying_capture_options():
+
     game = Checkers()
     squares = [CheckersPiece.EMPTY] * CheckersBoard.PLAYABLE_SQUARES
     squares[22] = CheckersPiece.WHITE_QUEEN
@@ -75,3 +79,16 @@ def test_queen_has_flying_capture_options():
     state = CheckersState(CheckersBoard(squares), CheckersPlayer.WHITE)
 
     assert game.get_moves(state) == ['22x33', '22x39', '22x44']
+
+
+def test_captured_piece_blocks_flying_queen_until_capture_sequence_ends():
+
+    game = Checkers()
+    squares = [CheckersPiece.EMPTY] * CheckersBoard.PLAYABLE_SQUARES
+    squares[22] = CheckersPiece.WHITE_QUEEN
+    squares[17] = CheckersPiece.BLACK
+    squares[28] = CheckersPiece.BLACK
+
+    state = CheckersState(CheckersBoard(squares), CheckersPlayer.WHITE)
+
+    assert game.get_moves(state) == ['22x11', '22x6', '22x0', '22x33', '22x39', '22x44']

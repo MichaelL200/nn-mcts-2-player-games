@@ -89,6 +89,7 @@ def test_get_right_down_bottom_edge():
 
 
 def test_get_closest_indexes_middle_position():
+
     board = CheckersBoard(BOARD.copy())
 
     indexes = board.get_closest_indexes(12)
@@ -99,6 +100,7 @@ def test_get_closest_indexes_middle_position():
 
 
 def test_get_closest_indexes_edge_positions():
+
     board = CheckersBoard(BOARD.copy())
 
     top_left = board.get_closest_indexes(0)
@@ -115,6 +117,7 @@ def test_get_closest_indexes_edge_positions():
 
 
 def test_get_closest_occupied_indexes_with_pieces():
+
     squares = BOARD.copy()
     squares[7] = CheckersPiece.BLACK
     squares[8] = CheckersPiece.WHITE
@@ -126,6 +129,7 @@ def test_get_closest_occupied_indexes_with_pieces():
 
 
 def test_get_piece():
+
     squares = BOARD.copy()
     squares[5] = CheckersPiece.BLACK
     squares[10] = CheckersPiece.WHITE
