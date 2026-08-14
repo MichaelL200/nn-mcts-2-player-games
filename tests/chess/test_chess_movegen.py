@@ -1,6 +1,13 @@
 from src.games.chess.board import ChessBoard, ChessPiece, algebraic_to_index
 from src.games.chess.state import ChessState, ChessPlayer
-from src.games.chess.movegen import generate_pseudo_legal_moves, is_square_attacked
+from src.games.chess.movegen import (
+    generate_pseudo_legal_moves,
+    generate_legal_moves,
+    is_square_attacked,
+    is_in_check,
+    is_checkmate,
+    is_stalemate,
+)
 
 
 def _squares(pieces: dict[str, ChessPiece]) -> list[ChessPiece]:
@@ -253,3 +260,73 @@ def test_slider_attacks_include_the_blocking_square_itself():
 def test_is_square_attacked_respects_color():
     board = _board({"e4": ChessPiece.WHITE_PAWN})
     assert is_square_attacked(board, algebraic_to_index("d5"), ChessPlayer.BLACK) is False
+
+
+def test_start_position_is_neither_check_nor_mate_nor_stalemate():
+    state = ChessState.from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+    assert is_in_check(state) is False
+    assert is_checkmate(state) is False
+    assert is_stalemate(state) is False
+    assert len(generate_legal_moves(state)) == 20
+
+
+def test_is_in_check_true_when_king_attacked():
+    state = _state({"e1": ChessPiece.WHITE_KING, "e8": ChessPiece.BLACK_ROOK})
+    assert is_in_check(state) is True
+
+
+def test_is_in_check_false_when_king_safe():
+    state = _state({"e1": ChessPiece.WHITE_KING, "a8": ChessPiece.BLACK_ROOK})
+    assert is_in_check(state) is False
+
+
+def test_pinned_piece_cannot_move_off_the_pin_line():
+    state = _state({"e1": ChessPiece.WHITE_KING, "e4": ChessPiece.WHITE_ROOK, "e8": ChessPiece.BLACK_ROOK})
+    moves = {m for m in generate_legal_moves(state) if m.startswith("e4")}
+    assert "e4d4" not in moves
+    assert "e4f4" not in moves
+    assert "e4e5" in moves
+    assert "e4e8" in moves
+
+
+def test_king_cannot_move_into_an_attacked_square():
+    state = _state({"e4": ChessPiece.WHITE_KING, "d8": ChessPiece.BLACK_ROOK})
+    moves = {m for m in generate_legal_moves(state) if m.startswith("e4")}
+    assert "e4d3" not in moves
+    assert "e4d4" not in moves
+    assert "e4d5" not in moves
+    assert "e4e5" in moves
+    assert "e4f4" in moves
+
+
+def test_king_cannot_escape_check_by_moving_along_the_checking_ray():
+    state = _state({"e4": ChessPiece.WHITE_KING, "e8": ChessPiece.BLACK_ROOK})
+    moves = {m for m in generate_legal_moves(state) if m.startswith("e4")}
+    assert "e4e3" not in moves
+    assert "e4e2" not in moves
+    assert "e4d4" in moves
+
+
+def test_checkmate_detected():
+    state = _state(
+        {
+            "a1": ChessPiece.WHITE_KING,
+            "a8": ChessPiece.WHITE_ROOK,
+            "g8": ChessPiece.BLACK_KING,
+            "f7": ChessPiece.BLACK_PAWN,
+            "g7": ChessPiece.BLACK_PAWN,
+            "h7": ChessPiece.BLACK_PAWN,
+        },
+        active_player=ChessPlayer.BLACK,
+    )
+    assert is_checkmate(state) is True
+    assert is_stalemate(state) is False
+
+
+def test_stalemate_detected():
+    state = _state(
+        {"a8": ChessPiece.BLACK_KING, "c7": ChessPiece.WHITE_KING, "b6": ChessPiece.WHITE_QUEEN},
+        active_player=ChessPlayer.BLACK,
+    )
+    assert is_stalemate(state) is True
+    assert is_checkmate(state) is False

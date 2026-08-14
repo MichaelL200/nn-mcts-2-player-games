@@ -1,5 +1,5 @@
 from ...core.interfaces import Move
-from .board import ChessBoard, ChessPiece, square_index, square_row_col, index_to_algebraic
+from .board import ChessBoard, ChessPiece, square_index, square_row_col, index_to_algebraic, algebraic_to_index
 from .state import ChessState, ChessPlayer, piece_color
 
 _KNIGHT_OFFSETS = [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]
@@ -9,6 +9,50 @@ _ROOK_DIRECTIONS = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 _QUEEN_DIRECTIONS = _BISHOP_DIRECTIONS + _ROOK_DIRECTIONS
 
 _PROMOTION_PIECES = "qrbn"
+_WHITE_PROMOTION_PIECE_BY_LETTER = {
+    "q": ChessPiece.WHITE_QUEEN,
+    "r": ChessPiece.WHITE_ROOK,
+    "b": ChessPiece.WHITE_BISHOP,
+    "n": ChessPiece.WHITE_KNIGHT,
+}
+
+
+def is_checkmate(state: ChessState) -> bool:
+    return is_in_check(state) and not generate_legal_moves(state)
+
+
+def is_stalemate(state: ChessState) -> bool:
+    return not is_in_check(state) and not generate_legal_moves(state)
+
+
+def is_in_check(state: ChessState) -> bool:
+    return _king_in_check(state.board, state.active_player)
+
+
+def generate_legal_moves(state: ChessState) -> list[Move]:
+    color = state.active_player
+    legal_moves = []
+    for move in generate_pseudo_legal_moves(state):
+        board_after = apply_move(state.board, move)
+        if not _king_in_check(board_after, color):
+            legal_moves.append(move)
+    return legal_moves
+
+
+def apply_move(board: ChessBoard, move: Move) -> ChessBoard:
+    from_square, to_square, promotion = parse_move(move)
+    squares = board.squares.copy()
+    moving_piece = squares[from_square]
+    squares[from_square] = ChessPiece.EMPTY
+    squares[to_square] = _promoted_piece(promotion, piece_color(moving_piece)) if promotion else moving_piece
+    return ChessBoard(squares)
+
+
+def parse_move(move: Move) -> tuple[int, int, str | None]:
+    from_square = algebraic_to_index(move[0:2])
+    to_square = algebraic_to_index(move[2:4])
+    promotion = move[4] if len(move) > 4 else None
+    return from_square, to_square, promotion
 
 
 def generate_pseudo_legal_moves(state: ChessState) -> list[Move]:
@@ -56,6 +100,25 @@ def is_square_attacked(board: ChessBoard, square: int, by_color: ChessPlayer) ->
         if square in targets:
             return True
     return False
+
+
+def _king_in_check(board: ChessBoard, color: ChessPlayer) -> bool:
+    king_square = _king_square(board, color)
+    return is_square_attacked(board, king_square, _enemy_color(color))
+
+
+def _promoted_piece(promotion: str, color: ChessPlayer) -> ChessPiece:
+    white_piece = _WHITE_PROMOTION_PIECE_BY_LETTER[promotion]
+    return white_piece if color == ChessPlayer.WHITE else ChessPiece(-white_piece)
+
+
+def _king_square(board: ChessBoard, color: ChessPlayer) -> int:
+    king = ChessPiece.WHITE_KING if color == ChessPlayer.WHITE else ChessPiece.BLACK_KING
+    return board.squares.index(king)
+
+
+def _enemy_color(color: ChessPlayer) -> ChessPlayer:
+    return ChessPlayer.BLACK if color == ChessPlayer.WHITE else ChessPlayer.WHITE
 
 
 def _leaper_targets(index: int, offsets: list[tuple[int, int]]) -> list[int]:
