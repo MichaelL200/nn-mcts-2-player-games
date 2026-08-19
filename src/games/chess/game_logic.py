@@ -64,22 +64,13 @@ def is_square_attacked(board: ChessBoard, square: int, by_color: ChessPlayer) ->
     rook = ChessPiece(ChessPiece.WHITE_ROOK * sign)
     queen = ChessPiece(ChessPiece.WHITE_QUEEN * sign)
 
-    if _attacked_by_leaper(squares, row, col, _KNIGHT_OFFSETS, knight):
-        return True
-
-    if _attacked_by_leaper(squares, row, col, _KING_OFFSETS, king):
-        return True
-
-    if _attacked_by_pawn(squares, row, col, by_color, pawn):
-        return True
-
-    if _attacked_by_slider(squares, row, col, _BISHOP_DIRECTIONS, bishop, queen):
-        return True
-
-    if _attacked_by_slider(squares, row, col, _ROOK_DIRECTIONS, rook, queen):
-        return True
-
-    return False
+    return (
+        _attacked_by_leaper(squares, row, col, _KNIGHT_OFFSETS, knight)
+        or _attacked_by_leaper(squares, row, col, _KING_OFFSETS, king)
+        or _attacked_by_pawn(squares, row, col, by_color, pawn)
+        or _attacked_by_slider(squares, row, col, _BISHOP_DIRECTIONS, bishop, queen)
+        or _attacked_by_slider(squares, row, col, _ROOK_DIRECTIONS, rook, queen)
+    )
 
 
 def is_draw_by_fifty_move_rule(state: ChessState) -> bool:
