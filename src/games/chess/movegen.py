@@ -84,13 +84,16 @@ def has_insufficient_material(board: ChessBoard) -> bool:
 
 
 def generate_legal_moves(state: ChessState) -> list[Move]:
+    if state._legal_moves_cache is not None:
+        return list(state._legal_moves_cache)
     color = state.active_player
     legal_moves = []
     for move in generate_pseudo_legal_moves(state):
         board_after = apply_move(state.board, move)
         if not _king_in_check(board_after, color):
             legal_moves.append(move)
-    return legal_moves
+    state._legal_moves_cache = legal_moves
+    return list(legal_moves)
 
 
 def advance(state: ChessState, move: Move) -> ChessState:

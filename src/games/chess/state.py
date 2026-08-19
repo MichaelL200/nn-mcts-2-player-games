@@ -1,7 +1,7 @@
 import random
 from enum import Enum
 
-from ...core.interfaces import GameState
+from ...core.interfaces import GameState, Move
 from .board import (
     ChessBoard,
     ChessPiece,
@@ -57,6 +57,7 @@ class ChessState(GameState):
         self.halfmove_clock = halfmove_clock
         self.fullmove_number = fullmove_number
         self.position_history = position_history
+        self._legal_moves_cache: list[Move] | None = None
 
     @classmethod
     def from_fen(cls, fen: str) -> "ChessState":
