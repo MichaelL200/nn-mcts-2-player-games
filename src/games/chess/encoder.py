@@ -3,7 +3,7 @@ import torch
 from ...core.interfaces import StateEncoder, Move
 from .board import ChessPiece, square_row_col
 from .state import ChessState, ChessPlayer
-from .movegen import parse_move
+from .game_logic import parse_move
 
 _PIECE_PLANE = {
     ChessPiece.WHITE_PAWN: 0,

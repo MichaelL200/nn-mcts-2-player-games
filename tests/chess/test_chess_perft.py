@@ -1,7 +1,7 @@
 import pytest
 
 from src.games.chess.state import ChessState
-from src.games.chess.movegen import generate_legal_moves, advance
+from src.games.chess.game_logic import generate_legal_moves, advance
 
 # positions and expected counts: https://www.chessprogramming.org/Perft_Results
 START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"

@@ -1,6 +1,6 @@
 from src.games.chess.board import ChessBoard, ChessPiece, algebraic_to_index
 from src.games.chess.state import ChessState, ChessPlayer
-from src.games.chess.movegen import (
+from src.games.chess.game_logic import (
     generate_pseudo_legal_moves,
     generate_legal_moves,
     is_square_attacked,

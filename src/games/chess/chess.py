@@ -1,9 +1,9 @@
 import numpy as np
 
 from ...core.interfaces import GameSimulation, Move
-from .state import ChessState, ChessPlayer
+from .state import ChessState, ChessPlayer, enemy_color
 from .encoder import ChessEncoder
-from .movegen import (
+from .game_logic import (
     generate_legal_moves,
     advance,
     is_checkmate,
@@ -11,7 +11,6 @@ from .movegen import (
     is_draw_by_fifty_move_rule,
     is_draw_by_repetition,
     has_insufficient_material,
-    enemy_color,
 )
 
 STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"

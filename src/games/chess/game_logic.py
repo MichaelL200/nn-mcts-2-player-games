@@ -1,6 +1,14 @@
 from ...core.interfaces import Move
-from .board import ChessBoard, ChessPiece, square_index, square_row_col, index_to_algebraic, algebraic_to_index
-from .state import ChessState, ChessPlayer, piece_color
+from .board import (
+    ChessBoard,
+    ChessPiece,
+    square_index,
+    square_row_col,
+    square_color,
+    index_to_algebraic,
+    algebraic_to_index,
+)
+from .state import ChessState, ChessPlayer, piece_color, enemy_color
 
 _KNIGHT_OFFSETS = [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]
 _KING_OFFSETS = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
@@ -45,6 +53,35 @@ def is_in_check(state: ChessState) -> bool:
     return _king_in_check(state.board, state.active_player)
 
 
+def is_square_attacked(board: ChessBoard, square: int, by_color: ChessPlayer) -> bool:
+    squares = board.squares
+    row, col = square_row_col(square)
+    sign = 1 if by_color == ChessPlayer.WHITE else -1
+    knight = ChessPiece(ChessPiece.WHITE_KNIGHT * sign)
+    king = ChessPiece(ChessPiece.WHITE_KING * sign)
+    pawn = ChessPiece(ChessPiece.WHITE_PAWN * sign)
+    bishop = ChessPiece(ChessPiece.WHITE_BISHOP * sign)
+    rook = ChessPiece(ChessPiece.WHITE_ROOK * sign)
+    queen = ChessPiece(ChessPiece.WHITE_QUEEN * sign)
+
+    if _attacked_by_leaper(squares, row, col, _KNIGHT_OFFSETS, knight):
+        return True
+
+    if _attacked_by_leaper(squares, row, col, _KING_OFFSETS, king):
+        return True
+
+    if _attacked_by_pawn(squares, row, col, by_color, pawn):
+        return True
+
+    if _attacked_by_slider(squares, row, col, _BISHOP_DIRECTIONS, bishop, queen):
+        return True
+
+    if _attacked_by_slider(squares, row, col, _ROOK_DIRECTIONS, rook, queen):
+        return True
+
+    return False
+
+
 def is_draw_by_fifty_move_rule(state: ChessState) -> bool:
     return state.halfmove_clock >= 100
 
@@ -78,7 +115,7 @@ def has_insufficient_material(board: ChessBoard) -> bool:
             first_piece in (ChessPiece.WHITE_BISHOP, ChessPiece.BLACK_BISHOP)
             and second_piece in (ChessPiece.WHITE_BISHOP, ChessPiece.BLACK_BISHOP)
         )
-        return both_bishops and _square_color(first_index) == _square_color(second_index)
+        return both_bishops and square_color(first_index) == square_color(second_index)
 
     return False
 
@@ -94,6 +131,30 @@ def generate_legal_moves(state: ChessState) -> list[Move]:
             legal_moves.append(move)
     state._legal_moves_cache = legal_moves
     return list(legal_moves)
+
+
+def generate_pseudo_legal_moves(state: ChessState) -> list[Move]:
+    board = state.board
+    color = state.active_player
+    moves = []
+    for index, piece in enumerate(board.squares):
+        if piece == ChessPiece.EMPTY or piece_color(piece) != color:
+            continue
+        match piece:
+            case ChessPiece.WHITE_PAWN | ChessPiece.BLACK_PAWN:
+                moves += _pawn_moves(state, index)
+            case ChessPiece.WHITE_KNIGHT | ChessPiece.BLACK_KNIGHT:
+                moves += _leaper_moves(board, color, index, _KNIGHT_OFFSETS)
+            case ChessPiece.WHITE_BISHOP | ChessPiece.BLACK_BISHOP:
+                moves += _slider_moves(board, color, index, _BISHOP_DIRECTIONS)
+            case ChessPiece.WHITE_ROOK | ChessPiece.BLACK_ROOK:
+                moves += _slider_moves(board, color, index, _ROOK_DIRECTIONS)
+            case ChessPiece.WHITE_QUEEN | ChessPiece.BLACK_QUEEN:
+                moves += _slider_moves(board, color, index, _QUEEN_DIRECTIONS)
+            case ChessPiece.WHITE_KING | ChessPiece.BLACK_KING:
+                moves += _leaper_moves(board, color, index, _KING_OFFSETS)
+                moves += _castling_moves(state)
+    return moves
 
 
 def advance(state: ChessState, move: Move) -> ChessState:
@@ -147,57 +208,14 @@ def parse_move(move: Move) -> tuple[int, int, str | None]:
     return from_square, to_square, promotion
 
 
-def generate_pseudo_legal_moves(state: ChessState) -> list[Move]:
-    board = state.board
-    color = state.active_player
-    moves = []
-    for index, piece in enumerate(board.squares):
-        if piece == ChessPiece.EMPTY or piece_color(piece) != color:
-            continue
-        match piece:
-            case ChessPiece.WHITE_PAWN | ChessPiece.BLACK_PAWN:
-                moves += _pawn_moves(state, index)
-            case ChessPiece.WHITE_KNIGHT | ChessPiece.BLACK_KNIGHT:
-                moves += _leaper_moves(board, color, index, _KNIGHT_OFFSETS)
-            case ChessPiece.WHITE_BISHOP | ChessPiece.BLACK_BISHOP:
-                moves += _slider_moves(board, color, index, _BISHOP_DIRECTIONS)
-            case ChessPiece.WHITE_ROOK | ChessPiece.BLACK_ROOK:
-                moves += _slider_moves(board, color, index, _ROOK_DIRECTIONS)
-            case ChessPiece.WHITE_QUEEN | ChessPiece.BLACK_QUEEN:
-                moves += _slider_moves(board, color, index, _QUEEN_DIRECTIONS)
-            case ChessPiece.WHITE_KING | ChessPiece.BLACK_KING:
-                moves += _leaper_moves(board, color, index, _KING_OFFSETS)
-                moves += _castling_moves(state)
-    return moves
+def _king_in_check(board: ChessBoard, color: ChessPlayer) -> bool:
+    king_square = _king_square(board, color)
+    return is_square_attacked(board, king_square, enemy_color(color))
 
 
-def is_square_attacked(board: ChessBoard, square: int, by_color: ChessPlayer) -> bool:
-    squares = board.squares
-    row, col = square_row_col(square)
-    sign = 1 if by_color == ChessPlayer.WHITE else -1
-    knight = ChessPiece(ChessPiece.WHITE_KNIGHT * sign)
-    king = ChessPiece(ChessPiece.WHITE_KING * sign)
-    pawn = ChessPiece(ChessPiece.WHITE_PAWN * sign)
-    bishop = ChessPiece(ChessPiece.WHITE_BISHOP * sign)
-    rook = ChessPiece(ChessPiece.WHITE_ROOK * sign)
-    queen = ChessPiece(ChessPiece.WHITE_QUEEN * sign)
-
-    if _attacked_by_leaper(squares, row, col, _KNIGHT_OFFSETS, knight):
-        return True
-
-    if _attacked_by_leaper(squares, row, col, _KING_OFFSETS, king):
-        return True
-
-    if _attacked_by_pawn(squares, row, col, by_color, pawn):
-        return True
-
-    if _attacked_by_slider(squares, row, col, _BISHOP_DIRECTIONS, bishop, queen):
-        return True
-
-    if _attacked_by_slider(squares, row, col, _ROOK_DIRECTIONS, rook, queen):
-        return True
-
-    return False
+def _king_square(board: ChessBoard, color: ChessPlayer) -> int:
+    king = ChessPiece.WHITE_KING if color == ChessPlayer.WHITE else ChessPiece.BLACK_KING
+    return board.squares.index(king)
 
 
 def _attacked_by_leaper(
@@ -242,108 +260,6 @@ def _attacked_by_slider(
     return False
 
 
-def _king_in_check(board: ChessBoard, color: ChessPlayer) -> bool:
-    king_square = _king_square(board, color)
-    return is_square_attacked(board, king_square, enemy_color(color))
-
-
-def _still_has_right(currently_held: bool, touched: set[int], king_start: int, rook_start: int) -> bool:
-    return currently_held and king_start not in touched and rook_start not in touched
-
-
-def _new_en_passant_target(board_before: ChessBoard, from_square: int, to_square: int) -> int | None:
-    moving_piece = board_before.get_piece(from_square)
-    # If double move of a pawn
-    if moving_piece in (ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN) and abs(to_square - from_square) == 16:
-        return (from_square + to_square) // 2
-    return None
-
-
-def _square_color(index: int) -> int:
-    row, col = square_row_col(index)
-    return (row + col) % 2
-
-
-def _next_halfmove_clock(board_before: ChessBoard, from_square: int, to_square: int, current_clock: int) -> int:
-    moving_piece = board_before.get_piece(from_square)
-    is_pawn_move = moving_piece in (ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN)
-    is_capture = board_before.get_piece(to_square) != ChessPiece.EMPTY
-    if is_pawn_move or is_capture:
-        return 0
-    return current_clock + 1
-
-
-def _next_fullmove_number(color: ChessPlayer, current_number: int) -> int:
-    return current_number + 1 if color == ChessPlayer.BLACK else current_number
-
-
-def _move_castling_rook(squares: list[ChessPiece], king_from: int, king_to: int) -> None:
-    row, _ = square_row_col(king_from)
-    if king_to > king_from:
-        rook_from, rook_to = square_index(row, 7), square_index(row, 5)
-    else:
-        rook_from, rook_to = square_index(row, 0), square_index(row, 3)
-    squares[rook_to] = squares[rook_from]
-    squares[rook_from] = ChessPiece.EMPTY
-
-
-def _promoted_piece(promotion: str, color: ChessPlayer) -> ChessPiece:
-    white_piece = _WHITE_PROMOTION_PIECE_BY_LETTER[promotion]
-    return white_piece if color == ChessPlayer.WHITE else ChessPiece(-white_piece)
-
-
-def _king_square(board: ChessBoard, color: ChessPlayer) -> int:
-    king = ChessPiece.WHITE_KING if color == ChessPlayer.WHITE else ChessPiece.BLACK_KING
-    return board.squares.index(king)
-
-
-def enemy_color(color: ChessPlayer) -> ChessPlayer:
-    return ChessPlayer.BLACK if color == ChessPlayer.WHITE else ChessPlayer.WHITE
-
-
-def _leaper_targets(index: int, offsets: list[tuple[int, int]]) -> list[int]:
-    row, col = square_row_col(index)
-    targets = []
-    for d_row, d_col in offsets:
-        new_row, new_col = row + d_row, col + d_col
-        if 0 <= new_row < 8 and 0 <= new_col < 8:
-            targets.append(square_index(new_row, new_col))
-    return targets
-
-
-def _slider_targets(board: ChessBoard, index: int, directions: list[tuple[int, int]]) -> list[int]:
-    row, col = square_row_col(index)
-    targets = []
-    for d_row, d_col in directions:
-        new_row, new_col = row + d_row, col + d_col
-        while 0 <= new_row < 8 and 0 <= new_col < 8:
-            target = square_index(new_row, new_col)
-            targets.append(target)
-            if board.get_piece(target) != ChessPiece.EMPTY:
-                break
-            new_row += d_row
-            new_col += d_col
-    return targets
-
-
-def _leaper_moves(board: ChessBoard, color: ChessPlayer, index: int, offsets: list[tuple[int, int]]) -> list[Move]:
-    moves = []
-    for target in _leaper_targets(index, offsets):
-        occupant = board.get_piece(target)
-        if occupant == ChessPiece.EMPTY or piece_color(occupant) != color:
-            moves.append(_move_string(index, target))
-    return moves
-
-
-def _slider_moves(board: ChessBoard, color: ChessPlayer, index: int, directions: list[tuple[int, int]]) -> list[Move]:
-    moves = []
-    for target in _slider_targets(board, index, directions):
-        occupant = board.get_piece(target)
-        if occupant == ChessPiece.EMPTY or piece_color(occupant) != color:
-            moves.append(_move_string(index, target))
-    return moves
-
-
 def _pawn_moves(state: ChessState, index: int) -> list[Move]:
     board = state.board
     color = state.active_player
@@ -379,6 +295,62 @@ def _pawn_moves(state: ChessState, index: int) -> list[Move]:
                 moves.append(_move_string(index, capture_target))
 
     return moves
+
+
+def _pawn_destinations(from_index: int, to_index: int, is_promotion: bool) -> list[Move]:
+    if is_promotion:
+        return [_move_string(from_index, to_index, promotion) for promotion in _PROMOTION_PIECES]
+    return [_move_string(from_index, to_index)]
+
+
+def _move_string(from_index: int, to_index: int, promotion: str | None = None) -> Move:
+    move = index_to_algebraic(from_index) + index_to_algebraic(to_index)
+    if promotion is not None:
+        move += promotion
+    return move
+
+
+def _leaper_moves(board: ChessBoard, color: ChessPlayer, index: int, offsets: list[tuple[int, int]]) -> list[Move]:
+    moves = []
+    for target in _leaper_targets(index, offsets):
+        occupant = board.get_piece(target)
+        if occupant == ChessPiece.EMPTY or piece_color(occupant) != color:
+            moves.append(_move_string(index, target))
+    return moves
+
+
+def _leaper_targets(index: int, offsets: list[tuple[int, int]]) -> list[int]:
+    row, col = square_row_col(index)
+    targets = []
+    for d_row, d_col in offsets:
+        new_row, new_col = row + d_row, col + d_col
+        if 0 <= new_row < 8 and 0 <= new_col < 8:
+            targets.append(square_index(new_row, new_col))
+    return targets
+
+
+def _slider_moves(board: ChessBoard, color: ChessPlayer, index: int, directions: list[tuple[int, int]]) -> list[Move]:
+    moves = []
+    for target in _slider_targets(board, index, directions):
+        occupant = board.get_piece(target)
+        if occupant == ChessPiece.EMPTY or piece_color(occupant) != color:
+            moves.append(_move_string(index, target))
+    return moves
+
+
+def _slider_targets(board: ChessBoard, index: int, directions: list[tuple[int, int]]) -> list[int]:
+    row, col = square_row_col(index)
+    targets = []
+    for d_row, d_col in directions:
+        new_row, new_col = row + d_row, col + d_col
+        while 0 <= new_row < 8 and 0 <= new_col < 8:
+            target = square_index(new_row, new_col)
+            targets.append(target)
+            if board.get_piece(target) != ChessPiece.EMPTY:
+                break
+            new_row += d_row
+            new_col += d_col
+    return targets
 
 
 def _castling_moves(state: ChessState) -> list[Move]:
@@ -420,14 +392,41 @@ def _castling_move_if_legal(
     return [_move_string(king_from, king_to)]
 
 
-def _pawn_destinations(from_index: int, to_index: int, is_promotion: bool) -> list[Move]:
-    if is_promotion:
-        return [_move_string(from_index, to_index, promotion) for promotion in _PROMOTION_PIECES]
-    return [_move_string(from_index, to_index)]
+def _still_has_right(currently_held: bool, touched: set[int], king_start: int, rook_start: int) -> bool:
+    return currently_held and king_start not in touched and rook_start not in touched
 
 
-def _move_string(from_index: int, to_index: int, promotion: str | None = None) -> Move:
-    move = index_to_algebraic(from_index) + index_to_algebraic(to_index)
-    if promotion is not None:
-        move += promotion
-    return move
+def _new_en_passant_target(board_before: ChessBoard, from_square: int, to_square: int) -> int | None:
+    moving_piece = board_before.get_piece(from_square)
+    # If double move of a pawn
+    if moving_piece in (ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN) and abs(to_square - from_square) == 16:
+        return (from_square + to_square) // 2
+    return None
+
+
+def _next_halfmove_clock(board_before: ChessBoard, from_square: int, to_square: int, current_clock: int) -> int:
+    moving_piece = board_before.get_piece(from_square)
+    is_pawn_move = moving_piece in (ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN)
+    is_capture = board_before.get_piece(to_square) != ChessPiece.EMPTY
+    if is_pawn_move or is_capture:
+        return 0
+    return current_clock + 1
+
+
+def _next_fullmove_number(color: ChessPlayer, current_number: int) -> int:
+    return current_number + 1 if color == ChessPlayer.BLACK else current_number
+
+
+def _promoted_piece(promotion: str, color: ChessPlayer) -> ChessPiece:
+    white_piece = _WHITE_PROMOTION_PIECE_BY_LETTER[promotion]
+    return white_piece if color == ChessPlayer.WHITE else ChessPiece(-white_piece)
+
+
+def _move_castling_rook(squares: list[ChessPiece], king_from: int, king_to: int) -> None:
+    row, _ = square_row_col(king_from)
+    if king_to > king_from:
+        rook_from, rook_to = square_index(row, 7), square_index(row, 5)
+    else:
+        rook_from, rook_to = square_index(row, 0), square_index(row, 3)
+    squares[rook_to] = squares[rook_from]
+    squares[rook_from] = ChessPiece.EMPTY

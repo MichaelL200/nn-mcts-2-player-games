@@ -87,6 +87,11 @@ def square_row_col(index: int) -> tuple[int, int]:
     return divmod(index, 8)
 
 
+def square_color(index: int) -> int:
+    row, col = square_row_col(index)
+    return (row + col) % 2
+
+
 def _algebraic_from_index(index: int) -> str:
     row, col = square_row_col(index)
     return f"{chr(ord('a') + col)}{8 - row}"

@@ -143,3 +143,7 @@ class ChessState(GameState):
 
 def piece_color(piece: ChessPiece) -> ChessPlayer:
     return ChessPlayer.WHITE if piece > 0 else ChessPlayer.BLACK
+
+
+def enemy_color(color: ChessPlayer) -> ChessPlayer:
+    return ChessPlayer.BLACK if color == ChessPlayer.WHITE else ChessPlayer.WHITE
