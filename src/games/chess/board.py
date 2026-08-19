@@ -87,12 +87,18 @@ def square_row_col(index: int) -> tuple[int, int]:
     return divmod(index, 8)
 
 
+def _algebraic_from_index(index: int) -> str:
+    row, col = square_row_col(index)
+    return f"{chr(ord('a') + col)}{8 - row}"
+
+
+_ALGEBRAIC_SQUARES = [_algebraic_from_index(index) for index in range(64)]
+_INDEX_BY_ALGEBRAIC = {square: index for index, square in enumerate(_ALGEBRAIC_SQUARES)}
+
+
 def algebraic_to_index(square: str) -> int:
-    col = ord(square[0]) - ord("a")
-    row = 8 - int(square[1])
-    return square_index(row, col)
+    return _INDEX_BY_ALGEBRAIC[square]
 
 
 def index_to_algebraic(index: int) -> str:
-    row, col = square_row_col(index)
-    return f"{chr(ord('a') + col)}{8 - row}"
+    return _ALGEBRAIC_SQUARES[index]
