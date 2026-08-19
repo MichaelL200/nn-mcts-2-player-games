@@ -172,26 +172,73 @@ def generate_pseudo_legal_moves(state: ChessState) -> list[Move]:
 
 
 def is_square_attacked(board: ChessBoard, square: int, by_color: ChessPlayer) -> bool:
-    for index, piece in enumerate(board.squares):
-        if piece == ChessPiece.EMPTY or piece_color(piece) != by_color:
-            continue
-        match piece:
-            case ChessPiece.WHITE_PAWN | ChessPiece.BLACK_PAWN:
-                targets = _pawn_attack_targets(index, by_color)
-            case ChessPiece.WHITE_KNIGHT | ChessPiece.BLACK_KNIGHT:
-                targets = _leaper_targets(index, _KNIGHT_OFFSETS)
-            case ChessPiece.WHITE_BISHOP | ChessPiece.BLACK_BISHOP:
-                targets = _slider_targets(board, index, _BISHOP_DIRECTIONS)
-            case ChessPiece.WHITE_ROOK | ChessPiece.BLACK_ROOK:
-                targets = _slider_targets(board, index, _ROOK_DIRECTIONS)
-            case ChessPiece.WHITE_QUEEN | ChessPiece.BLACK_QUEEN:
-                targets = _slider_targets(board, index, _QUEEN_DIRECTIONS)
-            case ChessPiece.WHITE_KING | ChessPiece.BLACK_KING:
-                targets = _leaper_targets(index, _KING_OFFSETS)
-            case _:
-                continue
-        if square in targets:
+    squares = board.squares
+    row, col = square_row_col(square)
+    sign = 1 if by_color == ChessPlayer.WHITE else -1
+    knight = ChessPiece(ChessPiece.WHITE_KNIGHT * sign)
+    king = ChessPiece(ChessPiece.WHITE_KING * sign)
+    pawn = ChessPiece(ChessPiece.WHITE_PAWN * sign)
+    bishop = ChessPiece(ChessPiece.WHITE_BISHOP * sign)
+    rook = ChessPiece(ChessPiece.WHITE_ROOK * sign)
+    queen = ChessPiece(ChessPiece.WHITE_QUEEN * sign)
+
+    if _attacked_by_leaper(squares, row, col, _KNIGHT_OFFSETS, knight):
+        return True
+
+    if _attacked_by_leaper(squares, row, col, _KING_OFFSETS, king):
+        return True
+
+    if _attacked_by_pawn(squares, row, col, by_color, pawn):
+        return True
+
+    if _attacked_by_slider(squares, row, col, _BISHOP_DIRECTIONS, bishop, queen):
+        return True
+
+    if _attacked_by_slider(squares, row, col, _ROOK_DIRECTIONS, rook, queen):
+        return True
+
+    return False
+
+
+def _attacked_by_leaper(
+    squares: list[ChessPiece], row: int, col: int, offsets: list[tuple[int, int]], piece: ChessPiece
+) -> bool:
+    for d_row, d_col in offsets:
+        new_row, new_col = row + d_row, col + d_col
+        if 0 <= new_row < 8 and 0 <= new_col < 8 and squares[square_index(new_row, new_col)] == piece:
             return True
+    return False
+
+
+def _attacked_by_pawn(squares: list[ChessPiece], row: int, col: int, by_color: ChessPlayer, pawn: ChessPiece) -> bool:
+    pawn_row = row + 1 if by_color == ChessPlayer.WHITE else row - 1
+    if not 0 <= pawn_row < 8:
+        return False
+    for d_col in (-1, 1):
+        new_col = col + d_col
+        if 0 <= new_col < 8 and squares[square_index(pawn_row, new_col)] == pawn:
+            return True
+    return False
+
+
+def _attacked_by_slider(
+    squares: list[ChessPiece],
+    row: int,
+    col: int,
+    directions: list[tuple[int, int]],
+    piece_a: ChessPiece,
+    piece_b: ChessPiece,
+) -> bool:
+    for d_row, d_col in directions:
+        new_row, new_col = row + d_row, col + d_col
+        while 0 <= new_row < 8 and 0 <= new_col < 8:
+            occupant = squares[square_index(new_row, new_col)]
+            if occupant != ChessPiece.EMPTY:
+                if occupant == piece_a or occupant == piece_b:
+                    return True
+                break
+            new_row += d_row
+            new_col += d_col
     return False
 
 
@@ -276,19 +323,6 @@ def _slider_targets(board: ChessBoard, index: int, directions: list[tuple[int, i
                 break
             new_row += d_row
             new_col += d_col
-    return targets
-
-
-def _pawn_attack_targets(index: int, color: ChessPlayer) -> list[int]:
-    row, col = square_row_col(index)
-    direction = -1 if color == ChessPlayer.WHITE else 1
-    target_row = row + direction
-    targets = []
-    if 0 <= target_row < 8:
-        for d_col in (-1, 1):
-            target_col = col + d_col
-            if 0 <= target_col < 8:
-                targets.append(square_index(target_row, target_col))
     return targets
 
 
