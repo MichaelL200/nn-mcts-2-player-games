@@ -16,6 +16,22 @@ _WHITE_PROMOTION_PIECE_BY_LETTER = {
     "n": ChessPiece.WHITE_KNIGHT,
 }
 
+_WHITE_KING_START = algebraic_to_index("e1")
+_WHITE_KINGSIDE_ROOK_START = algebraic_to_index("h1")
+_WHITE_QUEENSIDE_ROOK_START = algebraic_to_index("a1")
+_WHITE_KINGSIDE_CASTLE_TARGET = algebraic_to_index("g1")
+_WHITE_QUEENSIDE_CASTLE_TARGET = algebraic_to_index("c1")
+_WHITE_KINGSIDE_CASTLE_EMPTY_SQUARES = (algebraic_to_index("f1"), algebraic_to_index("g1"))
+_WHITE_QUEENSIDE_CASTLE_EMPTY_SQUARES = (algebraic_to_index("b1"), algebraic_to_index("c1"), algebraic_to_index("d1"))
+
+_BLACK_KING_START = algebraic_to_index("e8")
+_BLACK_KINGSIDE_ROOK_START = algebraic_to_index("h8")
+_BLACK_QUEENSIDE_ROOK_START = algebraic_to_index("a8")
+_BLACK_KINGSIDE_CASTLE_TARGET = algebraic_to_index("g8")
+_BLACK_QUEENSIDE_CASTLE_TARGET = algebraic_to_index("c8")
+_BLACK_KINGSIDE_CASTLE_EMPTY_SQUARES = (algebraic_to_index("f8"), algebraic_to_index("g8"))
+_BLACK_QUEENSIDE_CASTLE_EMPTY_SQUARES = (algebraic_to_index("b8"), algebraic_to_index("c8"), algebraic_to_index("d8"))
+
 
 def is_checkmate(state: ChessState) -> bool:
     return is_in_check(state) and not generate_legal_moves(state)
@@ -39,12 +55,44 @@ def generate_legal_moves(state: ChessState) -> list[Move]:
     return legal_moves
 
 
+def advance(state: ChessState, move: Move) -> ChessState:
+    from_square, to_square, _ = parse_move(move)
+    touched = {from_square, to_square}
+
+    return ChessState(
+        apply_move(state.board, move),
+        _enemy_color(state.active_player),
+        _still_has_right(state.castle_white_kingside, touched, _WHITE_KING_START, _WHITE_KINGSIDE_ROOK_START),
+        _still_has_right(state.castle_white_queenside, touched, _WHITE_KING_START, _WHITE_QUEENSIDE_ROOK_START),
+        _still_has_right(state.castle_black_kingside, touched, _BLACK_KING_START, _BLACK_KINGSIDE_ROOK_START),
+        _still_has_right(state.castle_black_queenside, touched, _BLACK_KING_START, _BLACK_QUEENSIDE_ROOK_START),
+        _new_en_passant_target(state.board, from_square, to_square),
+        state.halfmove_clock,
+        state.fullmove_number,
+    )
+
+
 def apply_move(board: ChessBoard, move: Move) -> ChessBoard:
     from_square, to_square, promotion = parse_move(move)
     squares = board.squares.copy()
     moving_piece = squares[from_square]
+
     squares[from_square] = ChessPiece.EMPTY
     squares[to_square] = _promoted_piece(promotion, piece_color(moving_piece)) if promotion else moving_piece
+
+    # Castling
+    if moving_piece in (ChessPiece.WHITE_KING, ChessPiece.BLACK_KING) and abs(to_square - from_square) == 2:
+        _move_castling_rook(squares, from_square, to_square)
+    # En passant
+    elif (
+        moving_piece in (ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN)
+        and board.get_piece(to_square) == ChessPiece.EMPTY
+        and to_square % 8 != from_square % 8
+    ):
+        captured_row, _ = square_row_col(from_square)
+        _, captured_col = square_row_col(to_square)
+        squares[square_index(captured_row, captured_col)] = ChessPiece.EMPTY
+
     return ChessBoard(squares)
 
 
@@ -75,6 +123,7 @@ def generate_pseudo_legal_moves(state: ChessState) -> list[Move]:
                 moves += _slider_moves(board, color, index, _QUEEN_DIRECTIONS)
             case ChessPiece.WHITE_KING | ChessPiece.BLACK_KING:
                 moves += _leaper_moves(board, color, index, _KING_OFFSETS)
+                moves += _castling_moves(state)
     return moves
 
 
@@ -105,6 +154,28 @@ def is_square_attacked(board: ChessBoard, square: int, by_color: ChessPlayer) ->
 def _king_in_check(board: ChessBoard, color: ChessPlayer) -> bool:
     king_square = _king_square(board, color)
     return is_square_attacked(board, king_square, _enemy_color(color))
+
+
+def _still_has_right(currently_held: bool, touched: set[int], king_start: int, rook_start: int) -> bool:
+    return currently_held and king_start not in touched and rook_start not in touched
+
+
+def _new_en_passant_target(board_before: ChessBoard, from_square: int, to_square: int) -> int | None:
+    moving_piece = board_before.get_piece(from_square)
+    # If double move of a pawn
+    if moving_piece in (ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN) and abs(to_square - from_square) == 16:
+        return (from_square + to_square) // 2
+    return None
+
+
+def _move_castling_rook(squares: list[ChessPiece], king_from: int, king_to: int) -> None:
+    row, _ = square_row_col(king_from)
+    if king_to > king_from:
+        rook_from, rook_to = square_index(row, 7), square_index(row, 5)
+    else:
+        rook_from, rook_to = square_index(row, 0), square_index(row, 3)
+    squares[rook_to] = squares[rook_from]
+    squares[rook_from] = ChessPiece.EMPTY
 
 
 def _promoted_piece(promotion: str, color: ChessPlayer) -> ChessPiece:
@@ -208,8 +279,49 @@ def _pawn_moves(state: ChessState, index: int) -> list[Move]:
             occupant = board.get_piece(capture_target)
             if occupant != ChessPiece.EMPTY and piece_color(occupant) != color:
                 moves += _pawn_destinations(index, capture_target, is_promotion)
+            elif capture_target == state.en_passant:
+                moves.append(_move_string(index, capture_target))
 
     return moves
+
+
+def _castling_moves(state: ChessState) -> list[Move]:
+    moves = []
+    if state.active_player == ChessPlayer.WHITE:
+        if state.castle_white_kingside:
+            moves += _castling_move_if_legal(
+                state, _WHITE_KING_START, _WHITE_KINGSIDE_CASTLE_TARGET, _WHITE_KINGSIDE_CASTLE_EMPTY_SQUARES
+            )
+        if state.castle_white_queenside:
+            moves += _castling_move_if_legal(
+                state, _WHITE_KING_START, _WHITE_QUEENSIDE_CASTLE_TARGET, _WHITE_QUEENSIDE_CASTLE_EMPTY_SQUARES
+            )
+    else:
+        if state.castle_black_kingside:
+            moves += _castling_move_if_legal(
+                state, _BLACK_KING_START, _BLACK_KINGSIDE_CASTLE_TARGET, _BLACK_KINGSIDE_CASTLE_EMPTY_SQUARES
+            )
+        if state.castle_black_queenside:
+            moves += _castling_move_if_legal(
+                state, _BLACK_KING_START, _BLACK_QUEENSIDE_CASTLE_TARGET, _BLACK_QUEENSIDE_CASTLE_EMPTY_SQUARES
+            )
+    return moves
+
+
+def _castling_move_if_legal(
+    state: ChessState, king_from: int, king_to: int, empty_squares: tuple[int, ...]
+) -> list[Move]:
+    board = state.board
+    enemy = _enemy_color(state.active_player)
+
+    if any(board.get_piece(square) != ChessPiece.EMPTY for square in empty_squares):
+        return []
+
+    transit_square = (king_from + king_to) // 2
+    if any(is_square_attacked(board, square, enemy) for square in (king_from, transit_square, king_to)):
+        return []
+
+    return [_move_string(king_from, king_to)]
 
 
 def _pawn_destinations(from_index: int, to_index: int, is_promotion: bool) -> list[Move]:
