@@ -45,6 +45,44 @@ def is_in_check(state: ChessState) -> bool:
     return _king_in_check(state.board, state.active_player)
 
 
+def is_draw_by_fifty_move_rule(state: ChessState) -> bool:
+    return state.halfmove_clock >= 100
+
+
+def is_draw_by_repetition(state: ChessState) -> bool:
+    return state.position_history.count(state.zobrist_hash()) >= 3
+
+
+def has_insufficient_material(board: ChessBoard) -> bool:
+    non_king_pieces = [
+        (index, piece)
+        for index, piece in enumerate(board.squares)
+        if piece not in (ChessPiece.EMPTY, ChessPiece.WHITE_KING, ChessPiece.BLACK_KING)
+    ]
+
+    if len(non_king_pieces) == 0:
+        return True
+
+    if len(non_king_pieces) == 1:
+        _, piece = non_king_pieces[0]
+        return piece in (
+                ChessPiece.WHITE_KNIGHT,
+                ChessPiece.BLACK_KNIGHT,
+                ChessPiece.WHITE_BISHOP,
+                ChessPiece.BLACK_BISHOP,
+            )
+
+    if len(non_king_pieces) == 2:
+        (first_index, first_piece), (second_index, second_piece) = non_king_pieces
+        both_bishops = (
+            first_piece in (ChessPiece.WHITE_BISHOP, ChessPiece.BLACK_BISHOP)
+            and second_piece in (ChessPiece.WHITE_BISHOP, ChessPiece.BLACK_BISHOP)
+        )
+        return both_bishops and _square_color(first_index) == _square_color(second_index)
+
+    return False
+
+
 def generate_legal_moves(state: ChessState) -> list[Move]:
     color = state.active_player
     legal_moves = []
@@ -59,17 +97,20 @@ def advance(state: ChessState, move: Move) -> ChessState:
     from_square, to_square, _ = parse_move(move)
     touched = {from_square, to_square}
 
-    return ChessState(
+    next_state = ChessState(
         apply_move(state.board, move),
-        _enemy_color(state.active_player),
+        enemy_color(state.active_player),
         _still_has_right(state.castle_white_kingside, touched, _WHITE_KING_START, _WHITE_KINGSIDE_ROOK_START),
         _still_has_right(state.castle_white_queenside, touched, _WHITE_KING_START, _WHITE_QUEENSIDE_ROOK_START),
         _still_has_right(state.castle_black_kingside, touched, _BLACK_KING_START, _BLACK_KINGSIDE_ROOK_START),
         _still_has_right(state.castle_black_queenside, touched, _BLACK_KING_START, _BLACK_QUEENSIDE_ROOK_START),
         _new_en_passant_target(state.board, from_square, to_square),
-        state.halfmove_clock,
-        state.fullmove_number,
+        _next_halfmove_clock(state.board, from_square, to_square, state.halfmove_clock),
+        _next_fullmove_number(state.active_player, state.fullmove_number),
+        [],
     )
+    next_state.position_history = state.position_history + [next_state.zobrist_hash()]
+    return next_state
 
 
 def apply_move(board: ChessBoard, move: Move) -> ChessBoard:
@@ -153,7 +194,7 @@ def is_square_attacked(board: ChessBoard, square: int, by_color: ChessPlayer) ->
 
 def _king_in_check(board: ChessBoard, color: ChessPlayer) -> bool:
     king_square = _king_square(board, color)
-    return is_square_attacked(board, king_square, _enemy_color(color))
+    return is_square_attacked(board, king_square, enemy_color(color))
 
 
 def _still_has_right(currently_held: bool, touched: set[int], king_start: int, rook_start: int) -> bool:
@@ -166,6 +207,24 @@ def _new_en_passant_target(board_before: ChessBoard, from_square: int, to_square
     if moving_piece in (ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN) and abs(to_square - from_square) == 16:
         return (from_square + to_square) // 2
     return None
+
+
+def _square_color(index: int) -> int:
+    row, col = square_row_col(index)
+    return (row + col) % 2
+
+
+def _next_halfmove_clock(board_before: ChessBoard, from_square: int, to_square: int, current_clock: int) -> int:
+    moving_piece = board_before.get_piece(from_square)
+    is_pawn_move = moving_piece in (ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN)
+    is_capture = board_before.get_piece(to_square) != ChessPiece.EMPTY
+    if is_pawn_move or is_capture:
+        return 0
+    return current_clock + 1
+
+
+def _next_fullmove_number(color: ChessPlayer, current_number: int) -> int:
+    return current_number + 1 if color == ChessPlayer.BLACK else current_number
 
 
 def _move_castling_rook(squares: list[ChessPiece], king_from: int, king_to: int) -> None:
@@ -188,7 +247,7 @@ def _king_square(board: ChessBoard, color: ChessPlayer) -> int:
     return board.squares.index(king)
 
 
-def _enemy_color(color: ChessPlayer) -> ChessPlayer:
+def enemy_color(color: ChessPlayer) -> ChessPlayer:
     return ChessPlayer.BLACK if color == ChessPlayer.WHITE else ChessPlayer.WHITE
 
 
@@ -312,7 +371,7 @@ def _castling_move_if_legal(
     state: ChessState, king_from: int, king_to: int, empty_squares: tuple[int, ...]
 ) -> list[Move]:
     board = state.board
-    enemy = _enemy_color(state.active_player)
+    enemy = enemy_color(state.active_player)
 
     if any(board.get_piece(square) != ChessPiece.EMPTY for square in empty_squares):
         return []

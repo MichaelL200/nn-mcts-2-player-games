@@ -42,9 +42,10 @@ class ChessState(GameState):
         castle_white_queenside: bool,
         castle_black_kingside: bool,
         castle_black_queenside: bool,
-        en_passant: int | None,  # indicates if en_passant is possible and where
+        en_passant: int | None,  # indicates if en_passant is possible; contains the target square for potential capture
         halfmove_clock: int,  # counter for fifty-move rule
         fullmove_number: int,  # the current round (starts form 1)
+        position_history: list[int],  # zobrist hashes of every position reached so far this game
     ) -> None:
         self.board = board
         self.active_player = active_player
@@ -55,6 +56,7 @@ class ChessState(GameState):
         self.en_passant = en_passant
         self.halfmove_clock = halfmove_clock
         self.fullmove_number = fullmove_number
+        self.position_history = position_history
 
     @classmethod
     def from_fen(cls, fen: str) -> "ChessState":
@@ -80,6 +82,7 @@ class ChessState(GameState):
             en_passant=None if en_passant == "-" else algebraic_to_index(en_passant),
             halfmove_clock=int(halfmove_clock),
             fullmove_number=int(fullmove_number),
+            position_history=[],
         )
 
     def to_fen(self) -> str:

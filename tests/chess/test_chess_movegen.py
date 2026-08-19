@@ -18,7 +18,7 @@ def _squares(pieces: dict[str, ChessPiece]) -> list[ChessPiece]:
 
 
 def _state(pieces: dict[str, ChessPiece], active_player: ChessPlayer = ChessPlayer.WHITE) -> ChessState:
-    return ChessState(ChessBoard(_squares(pieces)), active_player, False, False, False, False, None, 0, 1)
+    return ChessState(ChessBoard(_squares(pieces)), active_player, False, False, False, False, None, 0, 1, [])
 
 
 def _board(pieces: dict[str, ChessPiece]) -> ChessBoard:

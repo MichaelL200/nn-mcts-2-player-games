@@ -29,6 +29,7 @@ def _state(
         algebraic_to_index(en_passant) if en_passant is not None else None,
         0,
         1,
+        [],
     )
 
 
