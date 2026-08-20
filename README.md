@@ -69,3 +69,4 @@ python3 main.py   # Run demo (falls back to random rollouts if no model found)
 
 ## Credits
 - ['mrserji'](https://mrserji.itch.io/) for their checkers assets 
+- Chess piece images by [Cburnett](https://commons.wikimedia.org/wiki/User:Cburnett), via [Wikimedia Commons](https://commons.wikimedia.org/wiki/Category:PNG_chess_pieces/Standard_transparent), licensed under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)
