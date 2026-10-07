@@ -9,12 +9,12 @@ class ReplayBuffer:
         self.max_size = max_size
         self.buffer = deque(maxlen=max_size)
 
-    def save_game(self, game_history, winner_value):
+    def save_game(self, game_history, winner_id):
         for state_tensor, policy_vector, player in game_history:
-            if winner_value == 0:
+            if winner_id == 0:
                 z = 0.0
             else:
-                z = 1.0 if player.value == winner_value else -1.0
+                z = 1.0 if player.value == winner_id else -1.0
 
             self.buffer.append((state_tensor.cpu(), policy_vector, z))
 

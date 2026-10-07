@@ -10,6 +10,7 @@ class Gamemode(Enum):
     PLAYER_VS_AI = 2
     AI_VS_AI = 3
 
+
 class GameLoop:
     def __init__(self, game: GameSimulation, ui: GameUI, gamemode: Gamemode, ai: MCTSTree) -> None:
         self.game = game
@@ -47,7 +48,7 @@ class GameLoop:
 
         self.ui.render(state)
         return state
-    
+
     def _handle_player_turn(self, state: GameState) -> GameState:
         valid_moves = self.game.get_moves(state)
         move = self.ui.get_player_move(state, valid_moves)
@@ -55,7 +56,7 @@ class GameLoop:
             self.ui.animate_move(state, move)
             return self.game.make_move(state, move)
         return state
-    
+
     def _handle_ai_turn(self, state: GameState) -> GameState:
         move = self.ai.mcts_search(state)
         self.ui.animate_move(state, move)

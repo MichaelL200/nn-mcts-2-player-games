@@ -8,7 +8,7 @@ class ModelWrapper:
     def __init__(self, model: torch.nn.Module, encoder: StateEncoder, device: str = 'cpu'):
         self.device = torch.device(device)
         self.model = model.to(self.device)
-        self.model.eval()  # Ustawiamy model w tryb inferencji (nie trenujemy go w MCTS)
+        self.model.eval()
         self.encoder = encoder
 
     @staticmethod
@@ -18,9 +18,14 @@ class ModelWrapper:
         from . import GameNet
         print(f"Loading existing model from {path} on {device}...")
         net = GameNet(action_size=encoder.action_size, in_channels=encoder.input_channels).to(device)
-        net.load_state_dict(torch.load(path, map_location=device, weights_only=True))
+        try:
+            state_dict = torch.load(path, map_location=device, weights_only=True)
+            net.load_state_dict(state_dict)
+        except Exception as exc:
+            print(f"WARNING: Failed to load incompatible model checkpoint: {exc}")
+            return None
         return ModelWrapper(net, encoder, device)
-    
+
     @staticmethod
     def load_or_new(path: str, encoder: StateEncoder, device: str = "cpu") -> "ModelWrapper":
         model = ModelWrapper.load(path, encoder, device)
@@ -29,11 +34,15 @@ class ModelWrapper:
         from .architecture import GameNet
         net = GameNet(action_size=encoder.action_size, in_channels=encoder.input_channels)
         return ModelWrapper(net, encoder, device)
-    
+
     def save(self, path: str) -> None:
         project_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         model_path = os.path.join(project_path, path)
-        torch.save(self.model.state_dict(), model_path)
+        if hasattr(self.model, "module"):
+            state_dict = self.model.module.state_dict()
+        else:
+            state_dict = self.model.state_dict()
+        torch.save(state_dict, model_path)
 
     def predict(self, game_state: GameState):
         state_tensor = self.encoder.encode(game_state)
@@ -45,4 +54,3 @@ class ModelWrapper:
 
         value = value_tensor.item()
         return policy_probs, value
-

@@ -14,23 +14,18 @@ class Checkers(GameSimulation):
     @property
     def encoder(self) -> CheckersEncoder:
         return self._encoder
-    
 
     def get_starting_state(self) -> CheckersState:
         """"
-        State with white player to move, deafult board of 64-element 1D array."
+        State with white player to move, default 10x10 board.
         """
         active_player = CheckersPlayer.WHITE
-        board = CheckersBoard(np.array([
-            CheckersPiece.BLACK, CheckersPiece.BLACK, CheckersPiece.BLACK, CheckersPiece.BLACK,
-            CheckersPiece.BLACK, CheckersPiece.BLACK, CheckersPiece.BLACK, CheckersPiece.BLACK,
-            CheckersPiece.BLACK, CheckersPiece.BLACK, CheckersPiece.BLACK, CheckersPiece.BLACK,
-            CheckersPiece.EMPTY, CheckersPiece.EMPTY, CheckersPiece.EMPTY, CheckersPiece.EMPTY,
-            CheckersPiece.EMPTY, CheckersPiece.EMPTY, CheckersPiece.EMPTY, CheckersPiece.EMPTY,
-            CheckersPiece.WHITE, CheckersPiece.WHITE, CheckersPiece.WHITE, CheckersPiece.WHITE,
-            CheckersPiece.WHITE, CheckersPiece.WHITE, CheckersPiece.WHITE, CheckersPiece.WHITE,
-            CheckersPiece.WHITE, CheckersPiece.WHITE, CheckersPiece.WHITE, CheckersPiece.WHITE,
-        ]).flatten())
+        squares = (
+            [CheckersPiece.BLACK] * 20
+            + [CheckersPiece.EMPTY] * 10
+            + [CheckersPiece.WHITE] * 20
+        )
+        board = CheckersBoard(np.array(squares))
         return CheckersState(board, active_player)
 
     def get_moves(self, game_state: CheckersState) -> list[Move]:
@@ -40,7 +35,8 @@ class Checkers(GameSimulation):
         capture_moves = self._capture_moves(game_state)
 
         if len(capture_moves) > 0:
-            return capture_moves
+            max_captures = max(move.count('x') for move in capture_moves)
+            return [move for move in capture_moves if move.count('x') == max_captures]
 
         return self._standard_moves(game_state)
 
@@ -63,22 +59,31 @@ class Checkers(GameSimulation):
             elif slot == CheckersPiece.BLACK or slot == CheckersPiece.BLACK_QUEEN:
                 black_absent = False
 
+        if len(self.get_moves(game_state)) == 0:
+            return True
         return white_absent or black_absent or self._is_draw(game_state)
 
     def reward(self, game_state: CheckersState, player: CheckersPlayer) -> int:
         """
         Returns the reward for the game with white player as the maximizing player.
         """
-        if self._is_draw(game_state):
-            return 0
+        white_has_pawns, black_has_pawns = False, False
 
-        mod = 1 if player == CheckersPlayer.WHITE else -1
+        for slot in game_state.board.squares:
+            if slot == CheckersPiece.WHITE or slot == CheckersPiece.WHITE_QUEEN:
+                white_has_pawns = True
+            elif slot == CheckersPiece.BLACK or slot == CheckersPiece.BLACK_QUEEN:
+                black_has_pawns = True
+        if white_has_pawns and not black_has_pawns:
+            return CheckersPlayer.WHITE.value
+        elif black_has_pawns and not white_has_pawns:
+            return CheckersPlayer.BLACK.value
 
-        for slot in game_state.get_board().get_squares():
-            if slot in self._pieces_from_player(CheckersPlayer.WHITE):
-                return 1 * mod
-            elif slot in self._pieces_from_player(CheckersPlayer.BLACK):
-                return -1 * mod
+        if len(self.get_moves(game_state)) == 0:
+            loser = game_state.get_player()
+            return CheckersPlayer.BLACK.value if loser == CheckersPlayer.WHITE else CheckersPlayer.WHITE.value
+
+        return 0
 
     def _is_draw(self, game_state: CheckersState) -> bool:
         avaible_moves = self.get_moves(game_state)
@@ -86,7 +91,7 @@ class Checkers(GameSimulation):
 
         if len(avaible_moves) == 0:
             if avaible_pieces:
-                return True
+                return False
             return False
         return False
 
@@ -104,16 +109,14 @@ class Checkers(GameSimulation):
         for index, slot in enumerate(board.squares):
 
             if slot == CheckersPiece.WHITE and player == CheckersPlayer.WHITE:
-                tl_index, tr_index = game_state.board._get_left_up(
-                    index), game_state.board._get_right_up(index)
+                tl_index, tr_index = game_state.board._get_left_up(index), game_state.board._get_right_up(index)
                 if tl_index is not None and game_state.board.get_piece(tl_index) == CheckersPiece.EMPTY:
                     moves.append(str(index)+"-"+str(tl_index))
                 if tr_index is not None and game_state.board.get_piece(tr_index) == CheckersPiece.EMPTY:
                     moves.append(str(index)+"-"+str(tr_index))
 
             elif slot == CheckersPiece.BLACK and player == CheckersPlayer.BLACK:
-                tl_index, tr_index = game_state.board._get_left_down(
-                    index), game_state.board._get_right_down(index)
+                tl_index, tr_index = game_state.board._get_left_down(index), game_state.board._get_right_down(index)
                 if tr_index is not None and game_state.board.get_piece(tr_index) == CheckersPiece.EMPTY:
                     moves.append(str(index)+"-"+str(tr_index))
                 if tl_index is not None and game_state.board.get_piece(tl_index) == CheckersPiece.EMPTY:
@@ -135,50 +138,91 @@ class Checkers(GameSimulation):
         moves = []
         for index, slot in enumerate(board.squares):
             if slot in self._pieces_from_player(player, opposite=False):
-                moves += self._captures_for_square(game_state,
-                                                   index, str(index))
+                moves += self._captures_for_square(game_state, index, str(index))
 
         return moves
 
     def _captures_for_square(self, game_state: CheckersState, index: int, move_string: str) -> list[Move]:
-        all_moves = []
         piece = game_state.board.get_piece(index)
-
-        # Differentiating between normal pieces and queens
         if piece in (CheckersPiece.WHITE, CheckersPiece.BLACK):
-            neighbour_indexes = game_state.board.get_closest_indexes(index)
-        elif piece in (CheckersPiece.WHITE_QUEEN, CheckersPiece.BLACK_QUEEN):
-            neighbour_indexes = game_state.board.get_closest_occupied_indexes(
-                index)
+            return self._capture_sequences_for_man(game_state, index, move_string)
+        return self._capture_sequences_for_queen(game_state, index, move_string)
 
-        for direction_id, neighbour_index in enumerate(neighbour_indexes):
-            # Check neighbour for oponent piece
+    def _capture_sequences_for_man(self, game_state: CheckersState, index: int, move_string: str) -> list[Move]:
+        piece = game_state.board.get_piece(index)
+        capture_directions = [0, 1, 2, 3]
+        sequences = []
+        found_capture = False
+
+        for direction_id in capture_directions:
+            neighbour_index = game_state.board.get_closest_index(index, direction_id)
             if neighbour_index is None:
                 continue
             neighbour_piece = game_state.board.get_piece(neighbour_index)
             if neighbour_piece not in self._pieces_from_piece(piece, opposite=True):
                 continue
 
-            # Check tile behind oponent piece
-            new_index = game_state.board.get_closest_index(
-                neighbour_index, direction_id)
-            if new_index is None:
+            landing_index = game_state.board.get_closest_index(neighbour_index, direction_id)
+            if landing_index is None:
                 continue
-            if game_state.board.get_piece(new_index) != CheckersPiece.EMPTY:
+            if game_state.board.get_piece(landing_index) != CheckersPiece.EMPTY:
                 continue
 
-            # Perform move & repeat
-            # move leading from initial state
-            whole_move = move_string + "x" + str(new_index)
-            # move leading from current state
-            new_move = str(index) + "x" + str(new_index)
-            new_state = self.make_move(deepcopy(game_state), new_move)
-            all_moves += self._captures_for_square(
-                new_state, new_index, whole_move)
+            found_capture = True
+            next_state = deepcopy(game_state)
+            next_state.board.set_piece(index, CheckersPiece.EMPTY)
+            next_state.board.set_piece(neighbour_index, CheckersPiece.EMPTY)
+            next_state.board.set_piece(landing_index, piece)
 
-        if len(all_moves) == 0 and 'x' in move_string:
+            next_move = f"{move_string}x{landing_index}"
+
+            continuations = self._capture_sequences_for_man(next_state, landing_index, next_move)
+            if continuations:
+                sequences.extend(continuations)
+            else:
+                sequences.append(next_move)
+
+        if not found_capture and 'x' in move_string:
             return [move_string]
-        return all_moves
+        return sequences
+
+    def _capture_sequences_for_queen(self, game_state: CheckersState, index: int, move_string: str) -> list[Move]:
+        piece = game_state.board.get_piece(index)
+        sequences = []
+        found_capture = False
+
+        for direction_id in range(4):
+            diagonal = game_state.board._get_diagonal(index, direction_id)
+            enemy_index = None
+            for candidate_index in diagonal:
+                candidate_piece = game_state.board.get_piece(candidate_index)
+                if candidate_piece == CheckersPiece.EMPTY:
+                    if enemy_index is None:
+                        continue
+                    next_state = deepcopy(game_state)
+                    next_state.board.set_piece(index, CheckersPiece.EMPTY)
+                    next_state.board.set_piece(enemy_index, CheckersPiece.EMPTY)
+                    next_state.board.set_piece(candidate_index, piece)
+                    next_move = f"{move_string}x{candidate_index}"
+                    found_capture = True
+                    continuations = self._capture_sequences_for_queen(next_state, candidate_index, next_move)
+                    if continuations:
+                        sequences.extend(continuations)
+                    else:
+                        sequences.append(next_move)
+                    continue
+
+                if candidate_piece in self._pieces_from_piece(piece, opposite=True):
+                    if enemy_index is None:
+                        enemy_index = candidate_index
+                    else:
+                        break
+                else:
+                    break
+
+        if not found_capture and 'x' in move_string:
+            return [move_string]
+        return sequences
 
     @staticmethod
     def _pieces_from_piece(piece: CheckersPiece, opposite: bool = False) -> tuple[CheckersPiece, CheckersPiece]:
@@ -215,11 +259,14 @@ class Checkers(GameSimulation):
         Performs move on given state and returns new one.
         Works only for valid moves.
         """
-        promotion_fields = [0, 1, 2, 3]
+        promotion_fields = list(range(0, CheckersBoard.SQUARES_PER_ROW))
         queen_piece = CheckersPiece.WHITE_QUEEN
         if game_state.get_player() == CheckersPlayer.BLACK:
             queen_piece = CheckersPiece.BLACK_QUEEN
-            promotion_fields = [28, 29, 30, 31]
+            promotion_fields = list(range(
+                CheckersBoard.PLAYABLE_SQUARES - CheckersBoard.SQUARES_PER_ROW,
+                CheckersBoard.PLAYABLE_SQUARES,
+            ))
 
         # No capture
         if 'x' not in move:
@@ -262,6 +309,13 @@ class Checkers(GameSimulation):
                 opposite_diagonal = state.board._get_diagonal(
                     final_field, dir2)
                 return [field for field in opposite_diagonal if field in diagonal]
+
+    def _is_promotion_square(self, piece: CheckersPiece, index: int) -> bool:
+        if piece == CheckersPiece.WHITE:
+            return index < CheckersBoard.SQUARES_PER_ROW
+        if piece == CheckersPiece.BLACK:
+            return index >= CheckersBoard.PLAYABLE_SQUARES - CheckersBoard.SQUARES_PER_ROW
+        return False
 
     def _switch_player(self, state: CheckersState):
         if state.get_player() == CheckersPlayer.WHITE:

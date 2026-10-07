@@ -11,6 +11,10 @@ class CheckersPiece(Enum):
 
 
 class CheckersBoard(Board):
+    BOARD_SIZE = 10
+    SQUARES_PER_ROW = BOARD_SIZE // 2
+    PLAYABLE_SQUARES = BOARD_SIZE * BOARD_SIZE // 2
+
     def __init__(self, squares):
         self.squares = squares
 
@@ -96,43 +100,50 @@ class CheckersBoard(Board):
 
     @staticmethod
     def _get_left_up(indx: int) -> int | None:
-        row = int(indx / 4)
-        if indx % 8 == 4 or indx <= 3:
+        row = indx // CheckersBoard.SQUARES_PER_ROW
+        if row == 0:
             return None
-        elif row % 2 == 0:
-            return indx - 4
-        else:
-            return indx - 5
+        return CheckersBoard._coord_to_index(row - 1, CheckersBoard._index_to_board_col(indx) - 1)
 
     @staticmethod
     def _get_right_up(indx: int) -> int | None:
-        row = int(indx / 4)
-        if indx % 8 == 3 or indx <= 3:
+        row = indx // CheckersBoard.SQUARES_PER_ROW
+        if row == 0:
             return None
-        elif row % 2 == 0:
-            return indx - 3
-        else:
-            return indx - 4
+        return CheckersBoard._coord_to_index(row - 1, CheckersBoard._index_to_board_col(indx) + 1)
 
     @staticmethod
     def _get_left_down(indx: int) -> int | None:
-        row = int(indx / 4)
-        if indx % 8 == 4 or indx >= 28:
+        row = indx // CheckersBoard.SQUARES_PER_ROW
+        if row == CheckersBoard.BOARD_SIZE - 1:
             return None
-        elif row % 2 == 0:
-            return indx + 4
-        else:
-            return indx + 3
+        return CheckersBoard._coord_to_index(row + 1, CheckersBoard._index_to_board_col(indx) - 1)
 
     @staticmethod
     def _get_right_down(indx: int) -> int | None:
-        row = int(indx / 4)
-        if indx % 8 == 3 or indx >= 28:
+        row = indx // CheckersBoard.SQUARES_PER_ROW
+        if row == CheckersBoard.BOARD_SIZE - 1:
             return None
-        elif row % 2 == 0:
-            return indx + 5
-        else:
-            return indx + 4
+        return CheckersBoard._coord_to_index(row + 1, CheckersBoard._index_to_board_col(indx) + 1)
+
+    @staticmethod
+    def _index_to_board_col(indx: int) -> int:
+        row, col = divmod(indx, CheckersBoard.SQUARES_PER_ROW)
+        return col * 2 + (1 if row % 2 == 0 else 0)
+
+    @staticmethod
+    def _coord_to_index(row: int, board_col: int) -> int | None:
+        if row < 0 or row >= CheckersBoard.BOARD_SIZE:
+            return None
+        if board_col < 0 or board_col >= CheckersBoard.BOARD_SIZE:
+            return None
+        if row % 2 == 0:
+            if board_col % 2 != 1:
+                return None
+            return row * CheckersBoard.SQUARES_PER_ROW + board_col // 2
+        if board_col % 2 != 0:
+            return None
+        return row * CheckersBoard.SQUARES_PER_ROW + board_col // 2
 
     def _get_diagonal(self, indx: int, direction_id: int) -> list[int]:
         """
@@ -152,24 +163,18 @@ class CheckersBoard(Board):
         white_queen = " ⛃ "
         black = " ⛀ "
         black_queen = " ⛁ "
-        top = " ┌───" + 7 * "┬───" + "┐\n"
-        mid = " ├───" + 7 * "┼───" + "┤\n"
-        bot = " └───" + 7 * "┴───" + "┘\n"
+        top = " ┌───" + (CheckersBoard.BOARD_SIZE - 1) * "┬───" + "┐\n"
+        mid = " ├───" + (CheckersBoard.BOARD_SIZE - 1) * "┼───" + "┤\n"
+        bot = " └───" + (CheckersBoard.BOARD_SIZE - 1) * "┴───" + "┘\n"
 
         string = top
-        for i in range(8):
+        for i in range(CheckersBoard.BOARD_SIZE):
             row = " │"
-            for j in range(8):
-                if i % 2 == 0:
-                    if j % 2 == 1:
-                        piece = self.squares[int(i * 4) + int(j / 2)]
-                    else:
-                        piece = CheckersPiece.EMPTY
+            for j in range(CheckersBoard.BOARD_SIZE):
+                if (i + j) % 2 == 0:
+                    piece = CheckersPiece.EMPTY
                 else:
-                    if j % 2 == 0:
-                        piece = self.squares[int(i * 4) + int(j / 2)]
-                    else:
-                        piece = CheckersPiece.EMPTY
+                    piece = self.squares[i * CheckersBoard.SQUARES_PER_ROW + j // 2]
 
                 if piece == CheckersPiece.EMPTY:
                     row += empty
@@ -184,7 +189,7 @@ class CheckersBoard(Board):
                 row += "│"
 
             string += row + "\n"
-            if i != 7:
+            if i != CheckersBoard.BOARD_SIZE - 1:
                 string += mid
         string += bot
         return string

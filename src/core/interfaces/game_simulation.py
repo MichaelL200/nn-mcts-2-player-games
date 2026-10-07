@@ -9,7 +9,7 @@ class GameSimulation(ABC):
     @abstractmethod
     def encoder(self) -> StateEncoder:
         pass
-    
+
     @abstractmethod
     def is_terminal(self, game_state: GameState) -> bool:
         pass

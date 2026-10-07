@@ -11,10 +11,14 @@ class CheckersUI(GameUI):
         pygame.init()
         self.display = Display(width, height)
         self._xy_selected = None
+        self._selected_color = (80, 140, 255)
+        self._capture_source_color = (255, 180, 60)
+        self._legal_move_color = (90, 200, 90)
+        self._capture_move_color = (220, 80, 80)
 
     def render(self, state: CheckersState) -> None:
         self.display.draw_board(state)
-        pygame.display.update()
+        self.display.window.flip()
 
     def get_player_move(self, state: CheckersState, valid_moves: list[Move]) -> Move | None:
         valid_coords = self._convert_moves(valid_moves)
@@ -23,24 +27,27 @@ class CheckersUI(GameUI):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 raise SystemExit
+            elif event.type == pygame.WINDOWRESIZED:
+                self.display.update_dimensions()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 xy_new = self._mouse_position_to_board_position(pygame.mouse.get_pos())
 
                 if self._xy_selected is not None:
                     move_candidate = (self._xy_selected, xy_new)
-                    self.display.highlight_square(None)
+                    self.display.highlight_squares({})
                     self._xy_selected = None
 
                     if move_candidate in valid_coords:
                         move_str = valid_moves[valid_coords.index(move_candidate)]
                         return move_str
                 else:
-                    self.display.highlight_square(xy_new)
+                    highlight_map = self._build_highlight_map(xy_new, valid_moves, valid_coords)
+                    self.display.highlight_squares(highlight_map)
                     self._xy_selected = xy_new
 
         return None
-    
+
     def animate_move(self, state: CheckersState, move: Move) -> None:
         squares = move.split("x") if "x" in move else move.split("-")
         sub_moves = [
@@ -59,7 +66,7 @@ class CheckersUI(GameUI):
             for square in inbetween:
                 fake_board[square] = CheckersPiece.EMPTY
             self.display.draw_board(fake_state)
-            pygame.display.update()
+            self.display.window.flip()
             pygame.time.wait(500)
 
     def show_game_over(self, state: CheckersState) -> bool:
@@ -78,6 +85,8 @@ class CheckersUI(GameUI):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     return False
+                elif event.type == pygame.WINDOWRESIZED:
+                    self.display.update_dimensions()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if button_rect.collidepoint(event.pos):
                         return True
@@ -85,7 +94,7 @@ class CheckersUI(GameUI):
             self.display.draw_board(state)
             pygame.draw.rect(self.display.screen, button_color, button_rect)
             self.display.screen.blit(text, text_rect)
-            pygame.display.update()
+            self.display.window.flip()
 
     def quit(self) -> None:
         pygame.quit()
@@ -97,17 +106,17 @@ class CheckersUI(GameUI):
         return x, y
 
     @staticmethod
-    def _idx32_to_8x8coords(idx: int) -> tuple[int, int]:
-        y = idx // 4
-        x = (idx % 4) * 2 + (y % 2 == 0)
+    def _idx50_to_10x10coords(idx: int) -> tuple[int, int]:
+        y = idx // 5
+        x = (idx % 5) * 2 + (y % 2 == 0)
         return x, y
 
     def _convert_moves(self, moves_str: list[Move]) -> list[tuple[tuple[int, int], tuple[int, int]]]:
         converted = []
         for move_str in moves_str:
             parts = move_str.split("x") if "x" in move_str else move_str.split("-")
-            start = self._idx32_to_8x8coords(int(parts[0]))
-            end = self._idx32_to_8x8coords(int(parts[-1]))
+            start = self._idx50_to_10x10coords(int(parts[0]))
+            end = self._idx50_to_10x10coords(int(parts[-1]))
             converted.append((start, end))
         return converted
 
@@ -119,3 +128,39 @@ class CheckersUI(GameUI):
                 opposite_diagonal = state.board._get_diagonal(final_field, dir2)
                 return [f for f in opposite_diagonal if f in diagonal]
         return []
+
+    def _build_highlight_map(
+        self,
+        source_xy: tuple[int, int],
+        valid_moves: list[Move],
+        valid_coords: list[tuple[tuple[int, int], tuple[int, int]]],
+    ) -> dict[tuple[int, int], tuple[int, int, int]]:
+        source_moves = [
+            (move_str, start, end)
+            for move_str, (start, end)
+            in zip(valid_moves, valid_coords)
+            if start == source_xy
+        ]
+
+        if not source_moves:
+            capture_sources = {
+                start
+                for move_str, (start, _)
+                in zip(valid_moves, valid_coords)
+                if "x" in move_str
+            }
+            highlights = {source_xy: self._selected_color}
+            for square in capture_sources:
+                if square != source_xy:
+                    highlights[square] = self._capture_source_color
+            return highlights
+
+        highlights = {source_xy: self._selected_color}
+
+        for move_str, _, end in source_moves:
+            if "x" in move_str:
+                highlights[end] = self._capture_move_color
+            else:
+                highlights[end] = self._legal_move_color
+
+        return highlights
