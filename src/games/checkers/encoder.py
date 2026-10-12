@@ -11,6 +11,14 @@ class CheckersEncoder(StateEncoder):
         return 5
 
     @property
+    def board_rows(self) -> int:
+        return CheckersBoard.BOARD_SIZE
+
+    @property
+    def board_cols(self) -> int:
+        return CheckersBoard.BOARD_SIZE
+
+    @property
     def action_size(self):
         return CheckersBoard.PLAYABLE_SQUARES * CheckersBoard.PLAYABLE_SQUARES
 

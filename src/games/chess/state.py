@@ -3,6 +3,8 @@ from enum import Enum
 
 from ...core.interfaces import GameState, Move
 from .board import (
+    BOARD_SIZE,
+    SQUARE_COUNT,
     ChessBoard,
     ChessPiece,
     FEN_PIECE_LETTERS,
@@ -24,13 +26,13 @@ _PIECE_SQUARE_HASHES = {
     (piece, index): _ZOBRIST_RNG.getrandbits(64)
     for piece in ChessPiece
     if piece != ChessPiece.EMPTY
-    for index in range(64)
+    for index in range(SQUARE_COUNT)
 }
 _SIDE_TO_MOVE_HASH = _ZOBRIST_RNG.getrandbits(64)
 # one number per still-available castling right: White/Black king/queenside, as in FEN's "KQkq" field
 _CASTLING_HASHES = {right: _ZOBRIST_RNG.getrandbits(64) for right in "KQkq"}
 # one number per file (column a-h); the en passant square's rank is implied by whose turn it is
-_EN_PASSANT_FILE_HASHES = [_ZOBRIST_RNG.getrandbits(64) for _ in range(8)]
+_EN_PASSANT_FILE_HASHES = [_ZOBRIST_RNG.getrandbits(64) for _ in range(BOARD_SIZE)]
 
 
 class ChessState(GameState):
@@ -63,7 +65,7 @@ class ChessState(GameState):
     def from_fen(cls, fen: str) -> "ChessState":
         placement, active_color, castling, en_passant, halfmove_clock, fullmove_number = fen.split(" ")
 
-        squares = [ChessPiece.EMPTY] * 64
+        squares = [ChessPiece.EMPTY] * SQUARE_COUNT
         for row, rank in enumerate(placement.split("/")):
             col = 0
             for char in rank:
@@ -88,10 +90,10 @@ class ChessState(GameState):
 
     def to_fen(self) -> str:
         rows = []
-        for row in range(8):
+        for row in range(BOARD_SIZE):
             rank = ""
             empty_run = 0
-            for col in range(8):
+            for col in range(BOARD_SIZE):
                 piece = self.board.get_piece(square_index(row, col))
                 if piece == ChessPiece.EMPTY:
                     empty_run += 1

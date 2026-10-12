@@ -1,7 +1,7 @@
 import torch
 
 from ...core.interfaces import StateEncoder, Move
-from .board import ChessPiece, square_row_col
+from .board import BOARD_SIZE, SQUARE_COUNT, ChessPiece, square_row_col
 from .state import ChessState, ChessPlayer
 from .game_logic import parse_move
 
@@ -28,7 +28,11 @@ _CASTLE_BLACK_QUEENSIDE_PLANE = 16
 _EN_PASSANT_PLANE = 17
 _HALFMOVE_CLOCK_PLANE = 18
 
-_UNDERPROMOTION_PIECE_INDEX = {"n": 0, "b": 1, "r": 2}  # 'q' - queen is the default handled by regular move encoding
+_UNDERPROMOTION_PIECE = {"n": 0, "b": 1, "r": 2}  # 'q' - queen is the default handled by regular move encoding
+_UNDERPROMOTION_DIRECTIONS = 3  # capture-left, push, capture-right
+_UNDERPROMOTION_FILES = BOARD_SIZE
+_UNDERPROMOTION_COLORS = 2
+_PLAIN_MOVE_COUNT = SQUARE_COUNT * SQUARE_COUNT
 
 
 class ChessEncoder(StateEncoder):
@@ -37,17 +41,30 @@ class ChessEncoder(StateEncoder):
         return 19
 
     @property
+    def board_rows(self) -> int:
+        return BOARD_SIZE
+
+    @property
+    def board_cols(self) -> int:
+        return BOARD_SIZE
+
+    @property
     def action_size(self) -> int:
-        return 4240
+        return _PLAIN_MOVE_COUNT + (
+            _UNDERPROMOTION_COLORS
+            * _UNDERPROMOTION_FILES
+            * _UNDERPROMOTION_DIRECTIONS
+            * len(_UNDERPROMOTION_PIECE)
+        )
 
     def move_to_index(self, move: Move) -> int:
         from_square, to_square, promotion = parse_move(move)
         if promotion is None or promotion == "q":
-            return from_square * 64 + to_square
-        return 4096 + _underpromotion_offset(from_square, to_square, promotion)
+            return from_square * SQUARE_COUNT + to_square
+        return _PLAIN_MOVE_COUNT + _underpromotion_offset(from_square, to_square, promotion)
 
     def encode(self, game_state: ChessState) -> torch.Tensor:
-        tensor = torch.zeros(1, 19, 8, 8, dtype=torch.float32)
+        tensor = torch.zeros(1, self.input_channels, self.board_rows, self.board_cols, dtype=torch.float32)
         board = game_state.board
 
         for index, piece in enumerate(board.squares):
@@ -83,4 +100,9 @@ def _underpromotion_offset(from_square: int, to_square: int, promotion: str) -> 
     color = 0 if from_row == 1 else 1  # White pawn promotes after moving from row 1
     # Map from_col - 1 (capture-left), from_col (push), or from_col + 1 (capture-right) to 0, 1, 2
     direction = to_col - from_col + 1
-    return color * 72 + from_col * 9 + direction * 3 + _UNDERPROMOTION_PIECE_INDEX[promotion]
+    return (
+        color * _UNDERPROMOTION_FILES * _UNDERPROMOTION_DIRECTIONS * len(_UNDERPROMOTION_PIECE)
+        + from_col * _UNDERPROMOTION_DIRECTIONS * len(_UNDERPROMOTION_PIECE)
+        + direction * len(_UNDERPROMOTION_PIECE)
+        + _UNDERPROMOTION_PIECE[promotion]
+    )

@@ -17,7 +17,12 @@ class ModelWrapper:
             return None
         from . import GameNet
         print(f"Loading existing model from {path} on {device}...")
-        net = GameNet(action_size=encoder.action_size, in_channels=encoder.input_channels).to(device)
+        net = GameNet(
+            board_rows=encoder.board_rows,
+            board_cols=encoder.board_cols,
+            action_size=encoder.action_size,
+            in_channels=encoder.input_channels,
+        ).to(device)
         try:
             state_dict = torch.load(path, map_location=device, weights_only=True)
             net.load_state_dict(state_dict)
@@ -32,7 +37,12 @@ class ModelWrapper:
         if model is not None:
             return model
         from .architecture import GameNet
-        net = GameNet(action_size=encoder.action_size, in_channels=encoder.input_channels)
+        net = GameNet(
+            board_rows=encoder.board_rows,
+            board_cols=encoder.board_cols,
+            action_size=encoder.action_size,
+            in_channels=encoder.input_channels,
+        )
         return ModelWrapper(net, encoder, device)
 
     def save(self, path: str) -> None:

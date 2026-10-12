@@ -1,5 +1,6 @@
 from ...core.interfaces import Move
 from .board import (
+    BOARD_SIZE,
     ChessBoard,
     ChessPiece,
     square_index,
@@ -183,7 +184,7 @@ def apply_move(board: ChessBoard, move: Move) -> ChessBoard:
     elif (
         moving_piece in (ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN)
         and board.get_piece(to_square) == ChessPiece.EMPTY
-        and to_square % 8 != from_square % 8
+        and to_square % BOARD_SIZE != from_square % BOARD_SIZE
     ):
         captured_row, _ = square_row_col(from_square)
         _, captured_col = square_row_col(to_square)
@@ -214,18 +215,18 @@ def _attacked_by_leaper(
 ) -> bool:
     for d_row, d_col in offsets:
         new_row, new_col = row + d_row, col + d_col
-        if 0 <= new_row < 8 and 0 <= new_col < 8 and squares[square_index(new_row, new_col)] == piece:
+        if 0 <= new_row < BOARD_SIZE and 0 <= new_col < BOARD_SIZE and squares[square_index(new_row, new_col)] == piece:
             return True
     return False
 
 
 def _attacked_by_pawn(squares: list[ChessPiece], row: int, col: int, by_color: ChessPlayer, pawn: ChessPiece) -> bool:
     pawn_row = row + 1 if by_color == ChessPlayer.WHITE else row - 1
-    if not 0 <= pawn_row < 8:
+    if not 0 <= pawn_row < BOARD_SIZE:
         return False
     for d_col in (-1, 1):
         new_col = col + d_col
-        if 0 <= new_col < 8 and squares[square_index(pawn_row, new_col)] == pawn:
+        if 0 <= new_col < BOARD_SIZE and squares[square_index(pawn_row, new_col)] == pawn:
             return True
     return False
 
@@ -240,7 +241,7 @@ def _attacked_by_slider(
 ) -> bool:
     for d_row, d_col in directions:
         new_row, new_col = row + d_row, col + d_col
-        while 0 <= new_row < 8 and 0 <= new_col < 8:
+        while 0 <= new_row < BOARD_SIZE and 0 <= new_col < BOARD_SIZE:
             occupant = squares[square_index(new_row, new_col)]
             if occupant != ChessPiece.EMPTY:
                 if occupant == piece_a or occupant == piece_b:
@@ -258,11 +259,11 @@ def _pawn_moves(state: ChessState, index: int) -> list[Move]:
     direction = -1 if color == ChessPlayer.WHITE else 1
     target_row = row + direction
 
-    if not 0 <= target_row < 8:
+    if not 0 <= target_row < BOARD_SIZE:
         return []
 
-    is_promotion = target_row == (0 if color == ChessPlayer.WHITE else 7)
-    start_row = 6 if color == ChessPlayer.WHITE else 1
+    is_promotion = target_row == (0 if color == ChessPlayer.WHITE else BOARD_SIZE - 1)
+    start_row = BOARD_SIZE - 2 if color == ChessPlayer.WHITE else 1
 
     moves = []
 
@@ -277,7 +278,7 @@ def _pawn_moves(state: ChessState, index: int) -> list[Move]:
 
     for d_col in (-1, 1):
         target_col = col + d_col
-        if 0 <= target_col < 8:
+        if 0 <= target_col < BOARD_SIZE:
             capture_target = square_index(target_row, target_col)
             occupant = board.get_piece(capture_target)
             if occupant != ChessPiece.EMPTY and piece_color(occupant) != color:
@@ -315,7 +316,7 @@ def _leaper_targets(index: int, offsets: list[tuple[int, int]]) -> list[int]:
     targets = []
     for d_row, d_col in offsets:
         new_row, new_col = row + d_row, col + d_col
-        if 0 <= new_row < 8 and 0 <= new_col < 8:
+        if 0 <= new_row < BOARD_SIZE and 0 <= new_col < BOARD_SIZE:
             targets.append(square_index(new_row, new_col))
     return targets
 
@@ -334,7 +335,7 @@ def _slider_targets(board: ChessBoard, index: int, directions: list[tuple[int, i
     targets = []
     for d_row, d_col in directions:
         new_row, new_col = row + d_row, col + d_col
-        while 0 <= new_row < 8 and 0 <= new_col < 8:
+        while 0 <= new_row < BOARD_SIZE and 0 <= new_col < BOARD_SIZE:
             target = square_index(new_row, new_col)
             targets.append(target)
             if board.get_piece(target) != ChessPiece.EMPTY:
@@ -390,7 +391,8 @@ def _still_has_right(currently_held: bool, touched: set[int], king_start: int, r
 def _new_en_passant_target(board_before: ChessBoard, from_square: int, to_square: int) -> int | None:
     moving_piece = board_before.get_piece(from_square)
     # If double move of a pawn
-    if moving_piece in (ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN) and abs(to_square - from_square) == 16:
+    is_pawn = moving_piece in (ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN)
+    if is_pawn and abs(to_square - from_square) == 2 * BOARD_SIZE:  # Double push distance
         return (from_square + to_square) // 2
     return None
 
@@ -416,7 +418,7 @@ def _promoted_piece(promotion: str, color: ChessPlayer) -> ChessPiece:
 def _move_castling_rook(squares: list[ChessPiece], king_from: int, king_to: int) -> None:
     row, _ = square_row_col(king_from)
     if king_to > king_from:
-        rook_from, rook_to = square_index(row, 7), square_index(row, 5)
+        rook_from, rook_to = square_index(row, BOARD_SIZE - 1), square_index(row, 5)
     else:
         rook_from, rook_to = square_index(row, 0), square_index(row, 3)
     squares[rook_to] = squares[rook_from]

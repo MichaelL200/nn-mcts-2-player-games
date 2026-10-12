@@ -11,6 +11,16 @@ class StateEncoder(ABC):
 
     @property
     @abstractmethod
+    def board_rows(self) -> int:
+        pass
+
+    @property
+    @abstractmethod
+    def board_cols(self) -> int:
+        pass
+
+    @property
+    @abstractmethod
     def action_size(self) -> int:
         pass
 

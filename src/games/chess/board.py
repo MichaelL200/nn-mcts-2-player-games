@@ -51,6 +51,12 @@ _UNICODE_GLYPHS = {
 }
 
 
+# Move ouside class attribute for optimization (less lookups)
+# Important, because of for eample is_square_attacked that uses the value heavily
+BOARD_SIZE = 8
+SQUARE_COUNT = BOARD_SIZE * BOARD_SIZE
+
+
 class ChessBoard(Board):
     def __init__(self, squares: list[ChessPiece]):
         self.squares = squares
@@ -62,29 +68,29 @@ class ChessBoard(Board):
         self.squares[index] = piece
 
     def __str__(self) -> str:
-        top = " ┌───" + 7 * "┬───" + "┐\n"
-        mid = " ├───" + 7 * "┼───" + "┤\n"
-        bot = " └───" + 7 * "┴───" + "┘\n"
+        top = " ┌───" + (BOARD_SIZE - 1) * "┬───" + "┐\n"
+        mid = " ├───" + (BOARD_SIZE - 1) * "┼───" + "┤\n"
+        bot = " └───" + (BOARD_SIZE - 1) * "┴───" + "┘\n"
 
         string = top
-        for row in range(8):
+        for row in range(BOARD_SIZE):
             line = " │"
-            for col in range(8):
+            for col in range(BOARD_SIZE):
                 piece = self.squares[square_index(row, col)]
                 line += f" {_UNICODE_GLYPHS[piece]} │"
             string += line + "\n"
-            if row != 7:
+            if row != BOARD_SIZE - 1:
                 string += mid
         string += bot
         return string
 
 
 def square_index(row: int, col: int) -> int:
-    return row * 8 + col
+    return row * BOARD_SIZE + col
 
 
 def square_row_col(index: int) -> tuple[int, int]:
-    return divmod(index, 8)
+    return divmod(index, BOARD_SIZE)
 
 
 def square_color(index: int) -> int:
@@ -94,10 +100,10 @@ def square_color(index: int) -> int:
 
 def _algebraic_from_index(index: int) -> str:
     row, col = square_row_col(index)
-    return f"{chr(ord('a') + col)}{8 - row}"
+    return f"{chr(ord('a') + col)}{BOARD_SIZE - row}"
 
 
-_ALGEBRAIC_SQUARES = [_algebraic_from_index(index) for index in range(64)]
+_ALGEBRAIC_SQUARES = [_algebraic_from_index(index) for index in range(SQUARE_COUNT)]
 _INDEX_BY_ALGEBRAIC = {square: index for index, square in enumerate(_ALGEBRAIC_SQUARES)}
 
 

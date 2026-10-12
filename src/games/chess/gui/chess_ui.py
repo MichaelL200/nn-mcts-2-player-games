@@ -1,6 +1,6 @@
 import pygame
 from ....core.interfaces import GameUI, Move
-from ..board import ChessPiece, square_index, square_row_col, index_to_algebraic, algebraic_to_index
+from ..board import BOARD_SIZE, ChessPiece, square_index, square_row_col, index_to_algebraic, algebraic_to_index
 from ..state import ChessState, ChessPlayer
 from ..game_logic import parse_move, is_in_check
 from .display import ChessDisplay
@@ -80,7 +80,7 @@ class ChessUI(GameUI):
         if is_castling:
             row, _ = square_row_col(from_square)
             if to_square > from_square:
-                rook_from, rook_to = square_index(row, 7), square_index(row, 5)
+                rook_from, rook_to = square_index(row, BOARD_SIZE - 1), square_index(row, 5)
             else:
                 rook_from, rook_to = square_index(row, 0), square_index(row, 3)
             rook_piece = state.board.get_piece(rook_from)
@@ -90,7 +90,7 @@ class ChessUI(GameUI):
         is_en_passant = (
             moving_piece in (ChessPiece.WHITE_PAWN, ChessPiece.BLACK_PAWN)
             and state.board.get_piece(to_square) == ChessPiece.EMPTY
-            and to_square % 8 != from_square % 8
+            and to_square % BOARD_SIZE != from_square % BOARD_SIZE
         )
         if is_en_passant:
             captured_row, _ = square_row_col(from_square)

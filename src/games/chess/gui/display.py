@@ -1,6 +1,6 @@
 import pygame
 from importlib.resources import files
-from ..board import ChessPiece
+from ..board import BOARD_SIZE, ChessPiece
 from ..state import ChessState
 
 LIGHT_SQUARE = (240, 217, 181)
@@ -32,10 +32,10 @@ class ChessDisplay:
     def __init__(self, width: int, height: int):
         self.width = width
         self.height = height
-        self.square_size = min(self.width, self.height) // 8
+        self.square_size = min(self.width, self.height) // BOARD_SIZE
         self.screen = self._init_screen(self.width, self.height)
-        self.offset_x = (self.width - self.square_size * 8) // 2
-        self.offset_y = (self.height - self.square_size * 8) // 2
+        self.offset_x = (self.width - self.square_size * BOARD_SIZE) // 2
+        self.offset_y = (self.height - self.square_size * BOARD_SIZE) // 2
         self._image_cache: dict[ChessPiece, pygame.Surface] = self._load_images()
         self._label_font = pygame.font.Font(None, max(14, self.square_size // 4))
 
@@ -65,9 +65,9 @@ class ChessDisplay:
         self.screen.fill((30, 30, 30))
         squares = state.board.squares
 
-        for row in range(8):
-            for col in range(8):
-                index = row * 8 + col
+        for row in range(BOARD_SIZE):
+            for col in range(BOARD_SIZE):
+                index = row * BOARD_SIZE + col
                 color = LIGHT_SQUARE if (row + col) % 2 == 0 else DARK_SQUARE
                 if index == check_square:
                     color = CHECK_SQUARE
@@ -111,8 +111,8 @@ class ChessDisplay:
         x, y = pos
         col = (x - self.offset_x) // self.square_size
         row = (y - self.offset_y) // self.square_size
-        if 0 <= row < 8 and 0 <= col < 8:
-            return row * 8 + col
+        if 0 <= row < BOARD_SIZE and 0 <= col < BOARD_SIZE:
+            return row * BOARD_SIZE + col
         return None
 
     def square_center(self, row: int, col: int) -> tuple[int, int]:
@@ -127,14 +127,14 @@ class ChessDisplay:
 
     def _draw_labels(self) -> None:
         label_color = (50, 50, 50)
-        for col in range(8):
+        for col in range(BOARD_SIZE):
             label = self._label_font.render(_FILES[col], True, label_color)
             x = self.offset_x + col * self.square_size + 2
-            y = self.offset_y + 8 * self.square_size - label.get_height() - 2
+            y = self.offset_y + BOARD_SIZE * self.square_size - label.get_height() - 2
             self.screen.blit(label, (x, y))
-        for row in range(8):
-            label = self._label_font.render(str(8 - row), True, label_color)
-            x = self.offset_x + 8 * self.square_size - label.get_width() - 2
+        for row in range(BOARD_SIZE):
+            label = self._label_font.render(str(BOARD_SIZE - row), True, label_color)
+            x = self.offset_x + BOARD_SIZE * self.square_size - label.get_width() - 2
             y = self.offset_y + row * self.square_size + 2
             self.screen.blit(label, (x, y))
 
